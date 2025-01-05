@@ -3,9 +3,10 @@ from discord.ext import commands
 from discord import app_commands
 import requests
 import asyncio
+import os  # For environment variables
 
-# Your bot's token
-TOKEN = 'MTMyNTExMDIyNzIyNTU0Njg1NA.GUmWhR.l8w5ZMyOQAqBE6smrxV6w0CXxsFpAVF6o8lVwY'  # Replace with your bot's token
+# Get the bot token from environment variables
+TOKEN = os.getenv("DISCORD_TOKEN")  # Store the token securely
 
 # Initialize the bot
 intents = discord.Intents.default()
@@ -39,7 +40,7 @@ async def on_ready():
     # Start the meme posting task in the background
     asyncio.create_task(post_memes())  # This will run the meme posting loop in the background
 
-# Function to post memes every 10 seconds
+# Function to post memes every 1 minute
 async def post_memes():
     global meme_channel_id
     while True:
@@ -50,7 +51,7 @@ async def post_memes():
                 if meme_url:
                     await channel.send(meme_url)
                     print(f"Sent meme to {channel.name}")  # Debugging line
-        await asyncio.sleep(10)  # Wait for 10 seconds before posting another meme
+        await asyncio.sleep(60)  # Wait for 1 minute before posting another meme
 
 # Run the bot using the token
 bot.run(TOKEN)
