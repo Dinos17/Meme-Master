@@ -3,10 +3,9 @@ from discord.ext import commands
 from discord import app_commands
 import requests
 import asyncio
-import os
 
-# Retrieve token from environment variable
-TOKEN = os.getenv('DISCORD_TOKEN')
+# Your bot's token
+TOKEN = 'MTMyNTExMDIyNzIyNTU0Njg1NA.GUmWhR.l8w5ZMyOQAqBE6smrxV6w0CXxsFpAVF6o8lVwY'  # Replace with your bot's token
 
 # Initialize the bot
 intents = discord.Intents.default()
