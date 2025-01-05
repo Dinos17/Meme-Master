@@ -1,1 +1,1 @@
-worker python basic.py
+worker python bot.py
