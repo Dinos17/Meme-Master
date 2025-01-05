@@ -4,6 +4,7 @@ from discord import app_commands
 import requests
 import asyncio
 import os  # For environment variables
+import random  # For generating random quotes and jokes
 
 # Get the bot token from environment variables
 TOKEN = os.getenv("DISCORD_TOKEN")  # Store the token securely
@@ -14,6 +15,9 @@ bot = commands.Bot(command_prefix="!", intents=intents)
 
 # Variable to hold the channel ID where memes will be sent
 meme_channel_id = None
+
+# A set to track memes already posted
+posted_memes = set()
 
 # Function to fetch a meme from the internet
 def get_meme():
@@ -31,6 +35,43 @@ async def setchannel(interaction: discord.Interaction, channel: discord.TextChan
     meme_channel_id = channel.id
     await interaction.response.send_message(f"Meme channel has been set to {channel.mention}.")
 
+# Slash command to send a meme instantly
+@bot.tree.command(name="meme", description="Fetch and post a meme instantly.")
+async def meme(interaction: discord.Interaction):
+    meme_url = get_meme()
+    if meme_url:
+        await interaction.response.send_message(meme_url)
+    else:
+        await interaction.response.send_message("Sorry, couldn't fetch a meme right now.")
+
+# Slash command to view bot statistics (e.g., number of memes posted)
+@bot.tree.command(name="stats", description="View bot statistics.")
+async def stats(interaction: discord.Interaction):
+    total_memes_posted = len(posted_memes)
+    await interaction.response.send_message(f"Total memes posted: {total_memes_posted}")
+
+# Slash command to view the most recent memes posted
+@bot.tree.command(name="topmemes", description="View the top (recent) memes posted.")
+async def topmemes(interaction: discord.Interaction):
+    if posted_memes:
+        # Show the most recent 5 memes posted
+        recent_memes = list(posted_memes)[-5:]
+        await interaction.response.send_message(f"Top 5 memes:\n" + "\n".join(recent_memes))
+    else:
+        await interaction.response.send_message("No memes have been posted yet.")
+
+# Slash command to display a help message with available commands
+@bot.tree.command(name="help", description="Display a list of available commands.")
+async def help_command(interaction: discord.Interaction):
+    help_text = """
+    **Available Commands:**
+    - /setchannel [channel]: Set the channel for memes to be posted.
+    - /meme: Fetch and post a meme instantly.
+    - /stats: View bot statistics (number of memes posted).
+    - /topmemes: View the most recent memes posted.
+    """
+    await interaction.response.send_message(help_text)
+
 # Event triggered when the bot logs in successfully
 @bot.event
 async def on_ready():
@@ -42,14 +83,15 @@ async def on_ready():
 
 # Function to post memes every 1 minute
 async def post_memes():
-    global meme_channel_id
+    global meme_channel_id, posted_memes
     while True:
         if meme_channel_id:
             channel = bot.get_channel(meme_channel_id)
             if channel:
                 meme_url = get_meme()
-                if meme_url:
+                if meme_url and meme_url not in posted_memes:
                     await channel.send(meme_url)
+                    posted_memes.add(meme_url)  # Add the meme URL to the set
                     print(f"Sent meme to {channel.name}")  # Debugging line
         await asyncio.sleep(60)  # Wait for 1 minute before posting another meme
 
