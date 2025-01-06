@@ -70,6 +70,11 @@ async def meme(interaction: discord.Interaction):
     else:
         await interaction.response.send_message("Sorry, couldn't fetch a meme right now.")
 
+# Slash command to check if the bot is online (ping)
+@bot.tree.command(name="ping", description="Check if the bot is online.")
+async def ping(interaction: discord.Interaction):
+    await interaction.response.send_message("Pong! The bot is online and responsive.")
+
 # Event triggered when the bot logs in successfully
 @bot.event
 async def on_ready():
