@@ -2,124 +2,99 @@ import discord
 from discord.ext import commands
 from discord import app_commands
 import requests
-import asyncio
-import os  # For environment variables
+import os
 
 # Get the bot token from environment variables
-TOKEN = os.getenv("DISCORD_TOKEN")  # Store the token securely
+TOKEN = os.getenv("DISCORD_TOKEN")  # Replace with your bot token if needed
 
 # Initialize the bot with necessary intents
 intents = discord.Intents.default()
-intents.message_content = True  # Enable message content intent
-
 bot = commands.Bot(command_prefix="!", intents=intents)
 
-# Variable to hold the channel IDs where memes will be sent
-active_channels = set()
-
-# A set to track memes already posted
-posted_memes = set()
+# Dictionary to track channel statuses
+channel_status = {}  # {channel_id: is_active}
 
 # Function to fetch a meme from the internet
 def get_meme():
-    url = "https://meme-api.com/gimme"  # Public meme API
+    url = "https://meme-api.com/gimme"
     response = requests.get(url)
     if response.status_code == 200:
         data = response.json()
-        meme_url = data["url"]  # Meme image URL
-        meme_title = data["title"]  # Meme title or description
-        return meme_url, meme_title  # Return both the URL and the title
-    return None, None  # Return None if there's an issue
+        meme_url = data["url"]
+        meme_title = data["title"]
+        return meme_url, meme_title
+    return None, None
 
-# Slash command to set the meme channel
-@bot.tree.command(name="setchannel", description="Set the channel for memes to be posted.")
+# Slash command to set the channel for memes
+@bot.tree.command(name="setchannel", description="Set the channel for memes.")
 async def setchannel(interaction: discord.Interaction, channel: discord.TextChannel):
-    if channel.id in active_channels:
-        # If the channel is already set, but memes were stopped
-        await interaction.response.send_message(f"{channel.mention} is already set up for memes but has been stopped. To resume posting, use /startmemes.")
+    channel_id = channel.id
+    if channel_id in channel_status:
+        if not channel_status[channel_id]:
+            await interaction.response.send_message(
+                f"{channel.mention} is already set up for memes but is currently stopped. "
+                f"To resume posting memes, use `/startmemes`."
+            )
+        else:
+            await interaction.response.send_message(
+                f"{channel.mention} is already set up and active for memes."
+            )
     else:
-        active_channels.add(channel.id)
-        await interaction.response.send_message(f"Meme channel has been set to {channel.mention}.")
+        channel_status[channel_id] = False  # Initially set to stopped
+        await interaction.response.send_message(
+            f"Meme channel has been set to {channel.mention}. To start posting memes, use `/startmemes`."
+        )
 
-# Slash command to send a meme instantly
-@bot.tree.command(name="meme", description="Fetch and post a meme instantly.")
-async def meme(interaction: discord.Interaction):
-    meme_url, meme_title = get_meme()
-    if meme_url:
-        await interaction.response.send_message(f"**{meme_title}**\n{meme_url}")
-    else:
-        await interaction.response.send_message("Sorry, couldn't fetch a meme right now.")
-
-# Slash command to stop posting memes to a specific channel
-@bot.tree.command(name="stopmemes", description="Stop posting memes to a specific channel.")
-async def stopmemes(interaction: discord.Interaction, channel: discord.TextChannel):
-    if channel.id in active_channels:
-        active_channels.remove(channel.id)
-        await interaction.response.send_message(f"Stopped posting memes in {channel.mention}.")
-    else:
-        await interaction.response.send_message(f"Memes were not being posted in {channel.mention}.")
-
-# Slash command to start posting memes to a specific channel
+# Slash command to start posting memes
 @bot.tree.command(name="startmemes", description="Start posting memes to a specific channel.")
 async def startmemes(interaction: discord.Interaction, channel: discord.TextChannel):
-    if channel.id in active_channels:
-        await interaction.response.send_message(f"Memes are already set up in {channel.mention}, but they were stopped.")
+    channel_id = channel.id
+    if channel_id in channel_status:
+        if channel_status[channel_id]:
+            await interaction.response.send_message(
+                f"Memes are already active in {channel.mention}."
+            )
+        else:
+            channel_status[channel_id] = True
+            meme_url, meme_title = get_meme()
+            if meme_url:
+                await channel.send(f"**{meme_title}**\n{meme_url}")
+                await interaction.response.send_message(
+                    f"Started posting memes in {channel.mention}."
+                )
+            else:
+                await interaction.response.send_message(
+                    f"Failed to fetch a meme. Please try again later."
+                )
     else:
-        active_channels.add(channel.id)
-        await interaction.response.send_message(f"Started posting memes in {channel.mention}.")
+        await interaction.response.send_message(
+            f"{channel.mention} is not set up for memes. Use `/setchannel` first."
+        )
 
-# Slash command to view bot statistics (e.g., number of memes posted)
-@bot.tree.command(name="stats", description="View bot statistics.")
-async def stats(interaction: discord.Interaction):
-    total_memes_posted = len(posted_memes)
-    await interaction.response.send_message(f"Total memes posted: {total_memes_posted}")
-
-# Slash command to view the most recent memes posted
-@bot.tree.command(name="topmemes", description="View the top (recent) memes posted.")
-async def topmemes(interaction: discord.Interaction):
-    if posted_memes:
-        # Show the most recent 5 memes posted
-        recent_memes = list(posted_memes)[-5:]
-        await interaction.response.send_message(f"Top 5 memes:\n" + "\n".join(recent_memes))
+# Slash command to stop posting memes
+@bot.tree.command(name="stopmemes", description="Stop posting memes in a specific channel.")
+async def stopmemes(interaction: discord.Interaction, channel: discord.TextChannel):
+    channel_id = channel.id
+    if channel_id in channel_status:
+        if not channel_status[channel_id]:
+            await interaction.response.send_message(
+                f"Memes are already stopped in {channel.mention}."
+            )
+        else:
+            channel_status[channel_id] = False
+            await interaction.response.send_message(
+                f"Stopped posting memes in {channel.mention}."
+            )
     else:
-        await interaction.response.send_message("No memes have been posted yet.")
-
-# Slash command to display a help message with available commands
-@bot.tree.command(name="help", description="Display a list of available commands.")
-async def help_command(interaction: discord.Interaction):
-    help_text = """
-    **Available Commands:**
-    - /setchannel [channel]: Set the channel for memes to be posted.
-    - /meme: Fetch and post a meme instantly.
-    - /stopmemes [channel]: Stop posting memes to a specific channel.
-    - /startmemes [channel]: Start posting memes to a specific channel.
-    - /stats: View bot statistics (number of memes posted).
-    - /topmemes: View the most recent memes posted.
-    """
-    await interaction.response.send_message(help_text)
+        await interaction.response.send_message(
+            f"{channel.mention} is not set up for memes. Use `/setchannel` first."
+        )
 
 # Event triggered when the bot logs in successfully
 @bot.event
 async def on_ready():
-    await bot.tree.sync()  # Force syncing the slash commands with Discord
+    await bot.tree.sync()  # Sync slash commands
     print(f'Logged in as {bot.user}')
 
-    # Start the meme posting task in the background
-    asyncio.create_task(post_memes())  # This will run the meme posting loop in the background
-
-# Function to post memes every 1 minute
-async def post_memes():
-    global active_channels, posted_memes
-    while True:
-        for channel_id in active_channels:
-            channel = bot.get_channel(channel_id)
-            if channel:
-                meme_url, meme_title = get_meme()
-                if meme_url and meme_url not in posted_memes:
-                    await channel.send(f"**{meme_title}**\n{meme_url}")
-                    posted_memes.add(meme_url)  # Add the meme URL to the set
-                    print(f"Sent meme to {channel.name}")  # Debugging line
-        await asyncio.sleep(60)  # Wait for 1 minute before posting another meme
-
-# Run the bot using the token
+# Run the bot
 bot.run(TOKEN)
