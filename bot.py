@@ -4,7 +4,6 @@ from discord import app_commands
 import requests
 import asyncio
 import os  # For environment variables
-import random  # For generating random quotes and jokes
 
 # Get the bot token from environment variables
 TOKEN = os.getenv("DISCORD_TOKEN")  # Store the token securely
@@ -25,8 +24,10 @@ def get_meme():
     response = requests.get(url)
     if response.status_code == 200:
         data = response.json()
-        return data["url"]  # Meme image URL
-    return None
+        meme_url = data["url"]  # Meme image URL
+        meme_title = data["title"]  # Meme title or description
+        return meme_url, meme_title  # Return both the URL and the title
+    return None, None  # Return None if there's an issue
 
 # Slash command to set the meme channel
 @bot.tree.command(name="setchannel", description="Set the channel for memes to be posted.")
@@ -38,9 +39,9 @@ async def setchannel(interaction: discord.Interaction, channel: discord.TextChan
 # Slash command to send a meme instantly
 @bot.tree.command(name="meme", description="Fetch and post a meme instantly.")
 async def meme(interaction: discord.Interaction):
-    meme_url = get_meme()
+    meme_url, meme_title = get_meme()
     if meme_url:
-        await interaction.response.send_message(meme_url)
+        await interaction.response.send_message(f"**{meme_title}**\n{meme_url}")
     else:
         await interaction.response.send_message("Sorry, couldn't fetch a meme right now.")
 
@@ -88,9 +89,9 @@ async def post_memes():
         if meme_channel_id:
             channel = bot.get_channel(meme_channel_id)
             if channel:
-                meme_url = get_meme()
+                meme_url, meme_title = get_meme()
                 if meme_url and meme_url not in posted_memes:
-                    await channel.send(meme_url)
+                    await channel.send(f"**{meme_title}**\n{meme_url}")
                     posted_memes.add(meme_url)  # Add the meme URL to the set
                     print(f"Sent meme to {channel.name}")  # Debugging line
         await asyncio.sleep(60)  # Wait for 1 minute before posting another meme
