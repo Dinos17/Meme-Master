@@ -139,9 +139,9 @@ async def post_memes():
 # Event: Bot is ready
 @bot.event
 async def on_ready():
-    await bot.tree.sync()
+    await bot.tree.sync()  # Sync commands with Discord
     print(f"Logged in as {bot.user}")
-    asyncio.create_task(post_memes())
+    asyncio.create_task(post_memes())  # Start the meme posting task
 
 # Run the bot
 bot.run(TOKEN)
