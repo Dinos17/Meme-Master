@@ -8,8 +8,10 @@ import os  # For environment variables
 # Get the bot token from environment variables
 TOKEN = os.getenv("DISCORD_TOKEN")  # Store the token securely
 
-# Initialize the bot
+# Initialize the bot with necessary intents
 intents = discord.Intents.default()
+intents.message_content = True  # Enable message content intent
+
 bot = commands.Bot(command_prefix="!", intents=intents)
 
 # Variable to hold the channel IDs where memes will be sent
