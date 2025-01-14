@@ -54,6 +54,20 @@ def get_meme(category=None):
     return None, None  # Return None if all attempts fail
 
 
+# Function to parse the time interval (e.g., 5min, 30sec) into seconds
+def parse_time(interval):
+    """Parse time intervals (e.g., 5min, 30sec) into seconds."""
+    try:
+        if interval.endswith("min"):
+            return int(interval[:-3]) * 60  # Convert minutes to seconds
+        elif interval.endswith("sec"):
+            return int(interval[:-3])  # Already in seconds
+        else:
+            raise ValueError("Invalid time format. Use 'min' or 'sec'.")
+    except ValueError:
+        raise ValueError("Invalid time format. Use 'min' for minutes or 'sec' for seconds.")
+
+
 # Slash commands
 
 @bot.tree.command(name="addcategory", description="Add a custom meme category.")
@@ -195,23 +209,4 @@ async def command_history(interaction: discord.Interaction):
     if command_history_list:
         embed = discord.Embed(title="Command History", color=discord.Color.green())
         for i, command in enumerate(command_history_list, 1):
-            embed.add_field(name=f"Command #{i}", value=command, inline=False)
-        await interaction.response.send_message(embed=embed)
-    else:
-        await interaction.response.send_message("No commands have been used yet.")
-
-
-@bot.event
-async def on_interaction(interaction: discord.Interaction):
-    if interaction.type == discord.InteractionType.application_command:
-        command_history_list.append(f"/{interaction.data['name']}")
-
-
-@bot.event
-async def on_ready():
-    await bot.tree.sync()
-    logging.info(f"Bot is ready as {bot.user}!")
-
-
-if __name__ == "__main__":
-    bot.run(TOKEN)
+            embed.add_field(name=f"Command #{i}", value=command, inline=False
