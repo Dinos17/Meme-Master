@@ -6,6 +6,7 @@ from collections import deque
 import os
 import logging
 import time
+import re
 
 # Configure logging
 logging.basicConfig(
@@ -14,7 +15,12 @@ logging.basicConfig(
     handlers=[logging.FileHandler("bot.log"), logging.StreamHandler()]
 )
 
-TOKEN = os.getenv("BOT_TOKEN")  # Get the token from the environment
+# Token provided by the environment variable
+TOKEN = os.getenv("BOT_TOKEN")
+
+# Ensure the token is set
+if TOKEN is None:
+    raise ValueError("DISCORD_TOKEN environment variable is not set!")
 
 # Initialize the bot with default intents (No PyNaCl needed)
 intents = discord.Intents.default()
@@ -28,12 +34,28 @@ command_history_list = deque(maxlen=30)  # Stores last 30 commands
 recent_memes = []  # Stores recently posted memes
 custom_categories = {}  # Stores user-defined meme categories
 
-
 # Helper function to validate meme categories
 def is_valid_category(category):
     valid_categories = ["funny", "animals", "gaming", "wholesome"]
     return category in valid_categories or category in custom_categories
 
+# Helper function to parse time in the format '5 min', '30 sec', etc.
+def parse_time(interval):
+    match = re.match(r"(\d+)\s*(sec|min|hour|h|m|s)", interval.strip().lower())
+    if not match:
+        raise ValueError("Invalid time format. Use 'min' for minutes or 'sec' for seconds.")
+    
+    value, unit = match.groups()
+    value = int(value)
+    
+    if unit in ["min", "m"]:
+        return value * 60  # Convert minutes to seconds
+    elif unit in ["sec", "s"]:
+        return value  # Already in seconds
+    elif unit in ["hour", "h"]:
+        return value * 3600  # Convert hours to seconds
+    else:
+        raise ValueError("Invalid time unit.")
 
 # Function to fetch memes from an API with retry mechanism
 def get_meme(category=None):
@@ -165,53 +187,9 @@ async def stats(interaction: discord.Interaction):
     stats_message += f"**📅 Memes Posted**: {memes_posted}\n"
     stats_message += f"**💬 Active Channels**: {len(active_channels)}\n"
     stats_message += f"**⏸️ Stopped Channels**: {len(stopped_channels)}\n"
-    stats_message += f"**🔄 Recent Memes Posted**: {len(recent_memes)}\n"
-    
-    progress_memes = "🟩" * min(memes_posted // 10, 10)
-    progress_active = "🟩" * min(len(active_channels) // 2, 10)
-    
-    stats_message += f"\n**🟩 Meme Progress**: {progress_memes} ({memes_posted})\n"
-    stats_message += f"**🔔 Active Channel Progress**: {progress_active} ({len(active_channels)})\n"
-    
-    stats_message += "\n---------------------------\n"
-    stats_message += f"Requested by: {interaction.user.name}#{interaction.user.discriminator}\n"
-    
+    stats_message += f"**🔄 Recent Memes Posted**: {recent_memes[-10:] if recent_memes else 'No memes posted yet'}"
     await interaction.response.send_message(stats_message)
 
 
-@bot.tree.command(name="recentmemes", description="Show the last 10 memes posted.")
-async def recentmemes(interaction: discord.Interaction):
-    if recent_memes:
-        embed = discord.Embed(title="Recent Memes", color=discord.Color.green())
-        for meme in recent_memes:
-            embed.add_field(name=meme["title"], value=meme["url"], inline=False)
-        await interaction.response.send_message(embed=embed)
-    else:
-        await interaction.response.send_message("No memes have been posted yet.")
-
-
-@bot.tree.command(name="command_history", description="View the history of commands used.")
-async def command_history(interaction: discord.Interaction):
-    if command_history_list:
-        embed = discord.Embed(title="Command History", color=discord.Color.green())
-        for i, command in enumerate(command_history_list, 1):
-            embed.add_field(name=f"Command #{i}", value=command, inline=False)
-        await interaction.response.send_message(embed=embed)
-    else:
-        await interaction.response.send_message("No commands have been used yet.")
-
-
-@bot.event
-async def on_interaction(interaction: discord.Interaction):
-    if interaction.type == discord.InteractionType.application_command:
-        command_history_list.append(f"/{interaction.data['name']}")
-
-
-@bot.event
-async def on_ready():
-    await bot.tree.sync()
-    logging.info(f"Bot is ready as {bot.user}!")
-
-
-if __name__ == "__main__":
-    bot.run(TOKEN)
+# Start the bot
+bot.run(TOKEN)
