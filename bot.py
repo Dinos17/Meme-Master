@@ -76,7 +76,7 @@ async def help_command(interaction: discord.Interaction):
 @bot.tree.command(name="meme", description="Fetch and post a meme instantly.")
 async def meme(interaction: discord.Interaction):
     await interaction.response.defer()  # Defer the response to give the bot time to fetch the meme
-    
+
     meme_url, meme_title = get_meme()
     if meme_url:
         await interaction.followup.send(f"**{meme_title}**\n{meme_url}")
@@ -114,11 +114,15 @@ async def startmemes(interaction: discord.Interaction, channel: discord.TextChan
 
 @bot.tree.command(name="stats", description="Show bot statistics.")
 async def stats(interaction: discord.Interaction):
-    stats_message = f"**Bot Stats:**\n"
-    stats_message += f"Memes Posted: {memes_posted}\n"
-    stats_message += f"Active Channels: {len(active_channels)}\n"
-    stats_message += f"Stopped Channels: {len(stopped_channels)}"
-    await interaction.response.send_message(stats_message)
+    embed = discord.Embed(title="Bot Stats", color=discord.Color.green())
+    embed.add_field(name="Memes Posted", value=str(memes_posted), inline=True)
+    embed.add_field(name="Active Channels", value=str(len(active_channels)), inline=True)
+    embed.add_field(name="Stopped Channels", value=str(len(stopped_channels)), inline=True)
+    
+    # Optionally, add a thumbnail or image
+    embed.set_thumbnail(url=bot.user.avatar.url)  # Adds bot's avatar as a thumbnail
+    
+    await interaction.response.send_message(embed=embed)
 
 @bot.tree.command(name="recentmemes", description="Show the last 10 memes posted.")
 async def recentmemes(interaction: discord.Interaction):
