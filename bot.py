@@ -78,6 +78,7 @@ async def help_command(interaction: discord.Interaction):
         embed.add_field(name="/startmemes", value="Resume posting memes in a channel.", inline=False)
         embed.add_field(name="/recentmemes", value="Show the last 10 memes posted.", inline=False)
         embed.add_field(name="/command_history", value="View the history of commands used.", inline=False)
+        embed.add_field(name="/vote", value="Vote for the bot on top.gg.", inline=False)
         return embed
 
     # Create the main help embed
@@ -85,7 +86,7 @@ async def help_command(interaction: discord.Interaction):
 
     # Close button
     close_button = Button(label="Close", style=discord.ButtonStyle.danger)
-    
+
     # Support server invite button
     invite_button = Button(label="Join Our Support Server", style=discord.ButtonStyle.link, url="https://discord.gg/QegFaGhmmq")
 
@@ -104,6 +105,25 @@ async def help_command(interaction: discord.Interaction):
 
     # Send the help message with the embed and view
     await interaction.response.send_message(embed=help_embed, view=view)
+
+@bot.tree.command(name="vote", description="Vote for the bot on top.gg.")
+async def vote(interaction: discord.Interaction):
+    # Create an embed to give context about voting
+    embed = Embed(
+        title="Vote for Me on top.gg!",
+        description="If you enjoy using this bot, please take a moment to vote for it on top.gg. Your support helps improve the bot and keep it active!\n\nClick the button below to vote.",
+        color=discord.Color.green()  # You can change the color
+    )
+    
+    # Create a button that directs users to vote for the bot
+    vote_button = Button(label="Vote for Me", style=discord.ButtonStyle.link, url="https://top.gg/bot/1325110227225546854/vote")
+
+    # Create a view to hold the button
+    view = View()
+    view.add_item(vote_button)
+
+    # Send the embed with the vote button
+    await interaction.response.send_message(embed=embed, view=view)
 
 @bot.tree.command(name="meme", description="Fetch and post a meme instantly.")
 async def meme(interaction: discord.Interaction):
@@ -227,7 +247,7 @@ def run_bot_with_watchdog():
     event_handler = WatchdogHandler()
     observer.schedule(event_handler, path=os.path.dirname(os.path.abspath(__file__)), recursive=True)
     observer.start()
-
+    
     try:
         bot.run(TOKEN)
     except KeyboardInterrupt:
