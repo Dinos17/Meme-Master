@@ -1,5 +1,7 @@
 import discord
 from discord.ext import commands
+from discord.ui import Button, View
+from discord import Embed
 import asyncio
 import requests
 from collections import deque
@@ -61,24 +63,56 @@ async def post_meme_to_channel(channel, interval):
         await asyncio.sleep(interval)
 
 # Slash commands
+from discord.ui import Button, View
+from discord import Embed
+
 @bot.tree.command(name="help", description="Show a list of all available commands.")
 async def help_command(interaction: discord.Interaction):
-    embed = discord.Embed(title="Help - Bot Commands", color=discord.Color.blue())
-    embed.add_field(name="/meme", value="Fetch and post a meme instantly.", inline=False)
-    embed.add_field(name="/setchannel", value="Set the channel for memes to be posted.", inline=False)
-    embed.add_field(name="/stopmemes", value="Stop posting memes in a channel.", inline=False)
-    embed.add_field(name="/startmemes", value="Resume posting memes in a channel.", inline=False)
-    embed.add_field(name="/stats", value="Show bot statistics.", inline=False)
-    embed.add_field(name="/recentmemes", value="Show the last 10 memes posted.", inline=False)
-    embed.add_field(name="/command_history", value="View the history of commands used.", inline=False)
-    await interaction.response.send_message(embed=embed)
+    # Function to generate the help embed
+    def generate_help_embed():
+        embed = Embed(title="Help - Available Commands", color=discord.Color.blue())
+        embed.add_field(name="/meme", value="Fetch and post a meme instantly.", inline=False)
+        embed.add_field(name="/stats", value="Show bot statistics.", inline=False)
+        embed.add_field(name="/setchannel", value="Set a channel for posting memes at intervals.", inline=False)
+        embed.add_field(name="/stopmemes", value="Stop posting memes in a channel.", inline=False)
+        embed.add_field(name="/startmemes", value="Resume posting memes in a channel.", inline=False)
+        embed.add_field(name="/recentmemes", value="Show the last 10 memes posted.", inline=False)
+        embed.add_field(name="/command_history", value="View the history of commands used.", inline=False)
+        return embed
+
+    # Create the main help embed
+    help_embed = generate_help_embed()
+
+    # Close button
+    close_button = Button(label="Close", style=discord.ButtonStyle.danger)
+    
+    # Support server invite button
+    invite_button = Button(label="Join Our Support Server", style=discord.ButtonStyle.link, url="https://discord.gg/QegFaGhmmq")
+
+    # Close button callback
+    async def close_callback(interaction: discord.Interaction):
+        # Delete the help message
+        await interaction.message.delete()
+
+    # Assign the callback to the close button
+    close_button.callback = close_callback
+
+    # Create a view and add the buttons
+    view = View()
+    view.add_item(invite_button)
+    view.add_item(close_button)
+
+    # Send the help message with the embed and view
+    await interaction.response.send_message(embed=help_embed, view=view)
 
 @bot.tree.command(name="meme", description="Fetch and post a meme instantly.")
 async def meme(interaction: discord.Interaction):
-    await interaction.response.defer()  # Defer the response to give the bot time to fetch the meme
+    global memes_posted  # Allow modification of the global counter
+    await interaction.response.defer()  # Defer the response to allow time for fetching the meme
 
     meme_url, meme_title = get_meme()
     if meme_url:
+        memes_posted += 1  # Increment the memes posted counter
         await interaction.followup.send(f"**{meme_title}**\n{meme_url}")
     else:
         await interaction.followup.send("Sorry, couldn't fetch a meme right now.")
@@ -114,15 +148,35 @@ async def startmemes(interaction: discord.Interaction, channel: discord.TextChan
 
 @bot.tree.command(name="stats", description="Show bot statistics.")
 async def stats(interaction: discord.Interaction):
-    embed = discord.Embed(title="Bot Stats", color=discord.Color.green())
-    embed.add_field(name="Memes Posted", value=str(memes_posted), inline=True)
-    embed.add_field(name="Active Channels", value=str(len(active_channels)), inline=True)
-    embed.add_field(name="Stopped Channels", value=str(len(stopped_channels)), inline=True)
-    
-    # Optionally, add a thumbnail or image
-    embed.set_thumbnail(url=bot.user.avatar.url)  # Adds bot's avatar as a thumbnail
-    
-    await interaction.response.send_message(embed=embed)
+    # Function to generate the stats embed
+    def generate_stats_embed():
+        embed = Embed(title="Bot Statistics", color=discord.Color.green())
+        embed.add_field(name="Memes Posted", value=str(memes_posted), inline=True)
+        embed.add_field(name="Active Channels", value=str(len(active_channels)), inline=True)
+        embed.add_field(name="Stopped Channels", value=str(len(stopped_channels)), inline=True)
+        avatar_url = bot.user.avatar.url if bot.user.avatar else bot.user.default_avatar.url
+        embed.set_thumbnail(url=avatar_url)
+        return embed
+
+    # Create the initial embed
+    initial_embed = generate_stats_embed()
+
+    # Create a "Refresh Stats" button
+    refresh_button = Button(label="Refresh Stats", style=discord.ButtonStyle.primary)
+
+    async def refresh_callback(interaction: discord.Interaction):
+        # Regenerate the stats embed with updated information
+        updated_embed = generate_stats_embed()
+        await interaction.response.edit_message(embed=updated_embed, view=view)
+
+    refresh_button.callback = refresh_callback
+
+    # Create a view and add the refresh button
+    view = View()
+    view.add_item(refresh_button)
+
+    # Send the initial stats message with the embed and view
+    await interaction.response.send_message(embed=initial_embed, view=view)
 
 @bot.tree.command(name="recentmemes", description="Show the last 10 memes posted.")
 async def recentmemes(interaction: discord.Interaction):
