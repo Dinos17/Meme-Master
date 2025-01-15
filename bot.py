@@ -63,9 +63,6 @@ async def post_meme_to_channel(channel, interval):
         await asyncio.sleep(interval)
 
 # Slash commands
-from discord.ui import Button, View
-from discord import Embed
-
 @bot.tree.command(name="help", description="Show a list of all available commands.")
 async def help_command(interaction: discord.Interaction):
     # Function to generate the help embed
