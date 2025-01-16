@@ -2,22 +2,20 @@ import discord
 from discord.ext import commands
 from discord.ui import Button, View
 from discord import Embed
+from discord import app_commands
 import asyncio
 import requests
 from collections import deque
 import os
 import sys
-import subprocess
+from watchdog.observers import Observer
+from watchdog.events import FileSystemEventHandler
+import time  # Removed the stray colon here
 
-# Token provided by the user
 TOKEN = os.getenv("BOT_TOKEN")
 
-# Initialize the bot with default intents
-intents = discord.Intents.default()
-bot = commands.Bot(command_prefix="!", intents=intents)
-
-async def set_invisible_status():
-    await bot.change_presence(status=discord.Status.invisible)  # Set bot status to invisible
+# Initialize the bot with no intents (default intents)
+bot = commands.Bot(command_prefix="!", intents=discord.Intents.default())
 
 # Global variables
 active_channels = {}  # Stores active channels and their intervals
@@ -26,9 +24,37 @@ memes_posted = 0  # Counter for memes posted
 command_history_list = deque(maxlen=30)  # Stores last 30 commands
 recent_memes = []  # Stores recently posted memes
 
-# Function to fetch memes from an API
-def get_meme(category=None):
-    url = f"https://meme-api.com/gimme/{category}" if category else "https://meme-api.com/gimme"
+# Watchdog Event Handler
+class BotFileChangeHandler(FileSystemEventHandler):
+    def on_modified(self, event):
+        if event.src_path.endswith('.py'):  # Only restart if a Python file changes
+            print(f"File {event.src_path} has been modified. Restarting bot...")
+            restart_bot()
+
+def restart_bot():
+    """Function to restart the bot."""
+    print("Restarting bot...")
+    os.execl(sys.executable, sys.executable, *sys.argv)
+
+# Function to start the watchdog
+def start_watchdog(path_to_watch='.'):
+    event_handler = BotFileChangeHandler()
+    observer = Observer()
+    observer.schedule(event_handler, path=path_to_watch, recursive=False)
+    observer.start()
+    print("Watchdog started. Monitoring for file changes...")
+
+    try:
+        while True:
+            time.sleep(1)
+    except KeyboardInterrupt:
+        observer.stop()
+    observer.join()
+
+# Function to fetch memes from an API based on a search term
+# Function to fetch memes from the new API
+def get_meme(search_query=None):
+    url = f"https://meme-api.com/gimme/{search_query}" if search_query else "https://meme-api.com/gimme/50"  # Updated to use the new API endpoint
     try:
         response = requests.get(url)
         response.raise_for_status()
@@ -56,13 +82,13 @@ def format_time(seconds):
     else:
         return f"{seconds // 3600} hours {(seconds % 3600) // 60} min"
 
-# Function to post memes to a channel at intervals
-async def post_meme_to_channel(channel, interval):
+# Function to post memes to a channel at intervals, with a search query
+async def post_meme_to_channel(channel, interval, search_query):
     global memes_posted, recent_memes
     while True:
         if channel.id in stopped_channels:
             break
-        meme_url, meme_title = get_meme()
+        meme_url, meme_title = get_meme(search_query)
         if meme_url:
             recent_memes.append({"url": meme_url, "title": meme_title})
             if len(recent_memes) > 10:
@@ -83,8 +109,8 @@ async def help_command(interaction: discord.Interaction):
         embed.add_field(name="/startmemes", value="Resume posting memes in a channel.", inline=False)
         embed.add_field(name="/recentmemes", value="Show the last 10 memes posted.", inline=False)
         embed.add_field(name="/command_history", value="View the history of commands used.", inline=False)
-        embed.add_field(name="/memes_by_category", value="Fetch memes based on a specific category.", inline=False)
         embed.add_field(name="/vote", value="Vote for the bot on top.gg.", inline=False)
+        embed.add_field(name="/memes_by_number", value="Fetch a specific number of memes (up to 50).", inline=False)
         return embed
 
     help_embed = generate_help_embed()
@@ -102,6 +128,59 @@ async def help_command(interaction: discord.Interaction):
 
     await interaction.response.send_message(embed=help_embed, view=view)
 
+@bot.tree.command(name="sync", description="Manually sync bot commands.")
+async def sync(interaction: discord.Interaction):
+    await interaction.response.defer(ephemeral=True)  # Defer the response to avoid timeout
+
+    try:
+        # Create initial embed
+        progress_embed = Embed(title="🔄 Sync in progress...", color=discord.Color.blue())
+        progress_embed.add_field(name="Guild Sync", value="0%", inline=False)
+        progress_embed.add_field(name="Global Sync", value="0%", inline=False)
+        progress_embed.set_footer(text="Please wait while the bot syncs.")
+        progress_message = await interaction.followup.send(embed=progress_embed)
+
+        # Simulated custom progress steps for updating embed fields
+        progress_steps = [0, 12, 27, 29, 38, 40, 45, 56, 64, 71, 74, 78, 83, 86, 89, 92, 95, 99, 100]
+        total_steps = len(progress_steps)
+        step_delay = 2  # Increased delay in seconds for each progress update to make it slower
+
+        # Sync guild-specific commands and update progress after syncing
+        guild_synced = await bot.tree.sync(guild=interaction.guild)
+        guild_synced_count = len(guild_synced)
+
+        # Update embed with progress for guild sync
+        for step in range(total_steps):
+            progress_embed.set_field_at(0, name="Guild Sync", value=f"{progress_steps[step]}%", inline=False)
+            await progress_message.edit(embed=progress_embed)
+            await asyncio.sleep(step_delay)
+
+        # Sync global commands and update progress after syncing
+        global_synced = await bot.tree.sync()
+        global_synced_count = len(global_synced)
+
+        # Update embed with progress for global sync
+        for step in range(total_steps):
+            progress_embed.set_field_at(1, name="Global Sync", value=f"{progress_steps[step]}%", inline=False)
+            await progress_message.edit(embed=progress_embed)
+            await asyncio.sleep(step_delay)
+
+        # Final sync message after both steps are completed
+        await interaction.followup.send(
+            f"✅ The bot has been successfully refreshed for **{interaction.guild.name}**!\n\n"
+            f"**Server-Specific Commands Synced:** {guild_synced_count}.\n"
+            f"**Global Commands Synced:** {global_synced_count}."
+        )
+
+        # Final 100% progress message
+        progress_embed.set_field_at(0, name="Guild Sync", value="100%", inline=False)
+        progress_embed.set_field_at(1, name="Global Sync", value="100%", inline=False)
+        await progress_message.edit(embed=progress_embed)
+
+    except Exception as e:
+        # Handle and display any errors that occur during the sync process
+        await interaction.followup.send(f"❌ An error occurred while refreshing the bot: {e}")
+
 @bot.tree.command(name="vote", description="Vote for the bot on top.gg.")
 async def vote(interaction: discord.Interaction):
     embed = Embed(
@@ -116,34 +195,85 @@ async def vote(interaction: discord.Interaction):
     await interaction.response.send_message(embed=embed, view=view)
 
 @bot.tree.command(name="meme", description="Fetch and post a meme instantly.")
-async def meme(interaction: discord.Interaction):
+async def meme(interaction: discord.Interaction, search_query: str = None):
     global memes_posted
     await interaction.response.defer()
 
-    meme_url, meme_title = get_meme()
+    # If no search query is provided, just fetch a random meme
+    if not search_query:
+        search_query = ""
+    
+    meme_url, meme_title = get_meme(search_query)
     if meme_url:
         memes_posted += 1
         await interaction.followup.send(f"**{meme_title}**\n{meme_url}")
     else:
         await interaction.followup.send("Sorry, couldn't fetch a meme right now.")
 
-@bot.tree.command(name="memes_by_category", description="Fetch memes based on a specific category.")
-async def memes_by_category(interaction: discord.Interaction, category: str):
-    await interaction.response.defer()
-    
-    meme_url, meme_title = get_meme(category)
-    if meme_url:
-        await interaction.followup.send(f"**{meme_title}**\n{meme_url}")
+# Function to fetch a joke from an API
+def get_joke():
+    url = "https://official-joke-api.appspot.com/random_joke"
+    try:
+        response = requests.get(url)
+        response.raise_for_status()
+        data = response.json()
+        return data["setup"], data["punchline"]
+    except requests.exceptions.RequestException as e:
+        print(f"Error fetching joke: {e}")
+        return None, None
+
+# /joke command to fetch and post a random joke
+@bot.tree.command(name="joke", description="Fetch and post a random joke.")
+async def joke(interaction: discord.Interaction):
+    setup, punchline = get_joke()
+    if setup and punchline:
+        await interaction.response.send_message(f"**{setup}**\n*{punchline}*")
     else:
-        await interaction.followup.send(f"Sorry, couldn't fetch a meme for category '{category}' right now.")
+        await interaction.response.send_message("Sorry, couldn't fetch a joke right now.")
+
+@bot.tree.command(name="memes_by_number", description="Fetch a specific number of memes (max 50).")
+async def memes_by_number(interaction: discord.Interaction, count: int):
+    if count < 1 or count > 50:
+        await interaction.response.send_message("Please provide a number between 1 and 50.")
+        return
+
+    try:
+        response = requests.get("https://meme-api.com/gimme/50")  # Fetch 50 memes
+        response.raise_for_status()
+        data = response.json()
+        memes = data.get("memes", [])[:count]  # Get only the requested number of memes
+
+        if not memes:
+            await interaction.response.send_message("Couldn't fetch memes at the moment. Please try again later.")
+            return
+
+        embeds = []
+        for meme in memes:
+            embed = Embed(
+                title=meme["title"],
+                url=meme["postLink"],
+                description=f"Subreddit: {meme['subreddit']}",
+                color=discord.Color.green(),
+            )
+            embed.set_image(url=meme["url"])
+            embed.set_footer(text=f"👍 {meme['ups']} | Author: {meme['author']}")
+            embeds.append(embed)
+
+        await interaction.response.send_message(f"Here are your {count} memes:", embeds=embeds)
+    except requests.exceptions.RequestException as e:
+        print(f"Error fetching memes: {e}")
+        await interaction.response.send_message("There was an error fetching memes. Please try again later.")
 
 @bot.tree.command(name="setchannel", description="Set the channel for memes to be posted.")
-async def setchannel(interaction: discord.Interaction, channel: discord.TextChannel, category: str, interval: str):
+async def setchannel(interaction: discord.Interaction, channel: discord.TextChannel, search_query: str, interval: str):
     try:
+        # Convert search query to lowercase to ensure case-insensitivity
+        search_query = search_query.strip().lower()
+
         time_in_seconds = parse_time(interval)
-        active_channels[channel.id] = {"channel": channel, "category": category, "interval": time_in_seconds}
-        asyncio.create_task(post_meme_to_channel(channel, time_in_seconds))
-        await interaction.response.send_message(f"Set {channel.mention} as a meme channel with category '{category}' and an interval of {interval}.")
+        active_channels[channel.id] = {"channel": channel, "search_query": search_query, "interval": time_in_seconds}
+        asyncio.create_task(post_meme_to_channel(channel, time_in_seconds, search_query))
+        await interaction.response.send_message(f"Set {channel.mention} as a meme channel with search query '{search_query}' and an interval of {interval}.")
     except ValueError:
         await interaction.response.send_message("Invalid time format. Use 'min' for minutes or 'sec' for seconds.")
 
@@ -225,17 +355,18 @@ async def on_interaction(interaction: discord.Interaction):
 # Event to sync commands and handle updates
 @bot.event
 async def on_ready():
+    await bot.tree.sync()  # Sync commands when the bot is ready
     print(f"Bot is ready as {bot.user}")
-    await bot.change_presence(status=discord.Status.online)  # Set bot to online when it starts
+    await bot.change_presence(status=discord.Status.online)  # Set the bot's status
 
-# Run the bot
+# Run the bot with the watchdog
 def run_bot():
     try:
-        bot.run(TOKEN)  # Run the bot normally
+        # Start the bot directly without the watchdog for testing
+        bot.run(TOKEN)
     except Exception as e:
         print(f"Error occurred: {e}")
-        asyncio.run(set_invisible_status())  # Set bot to invisible if error occurs
-        sys.exit(1)  # Exit the bot process if it cannot start
+        sys.exit(1)
 
 # Run the bot using the token
-bot.run(TOKEN)
+run_bot()
