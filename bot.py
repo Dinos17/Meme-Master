@@ -13,7 +13,10 @@ from watchdog.events import FileSystemEventHandler
 import time  # Removed the stray colon here
 from collections import deque
 
-TOKEN = os.getenv("BOT_TOKEN")
+# Global variables
+command_history_list = deque(maxlen=30)  # Stores last 30 commands
+
+TOKEN = ("BOT_TOKEN")
 
 # Initialize the bot with no intents (default intents)
 bot = commands.Bot(command_prefix="!", intents=discord.Intents.default())
@@ -339,19 +342,49 @@ async def recentmemes(interaction: discord.Interaction):
         await interaction.response.send_message("No memes have been posted yet.")
 
 # Command to view the history of commands used
+# Command to view the history of commands used
 @bot.tree.command(name="command_history", description="View the history of commands used.")
 async def command_history(interaction: discord.Interaction):
-    if command_history_list:
-        history_message = "**Command History:**\n" + "\n".join(command_history_list)
-        await interaction.response.send_message(history_message)
-    else:
-        await interaction.response.send_message("No commands have been used yet.")
+    # Creating an embed to show the command history
+    embed = discord.Embed(title="Command History", color=discord.Color.blue())
 
-# Command to clear the command history
-@bot.tree.command(name="clearhistory", description="Clear the command history.")
-async def clearhistory(interaction: discord.Interaction):
-    command_history_list.clear()
-    await interaction.response.send_message("Command history has been cleared.")
+    # If there are commands in the history, list them
+    if command_history_list:
+        # Add each command to the embed
+        for command in command_history_list:
+            embed.add_field(name="Command", value=f"/{command}", inline=False)
+    else:
+        # If no commands are in history
+        embed.add_field(name="No History", value="No commands have been used yet.", inline=False)
+
+    # Create a "Clear History" button to clear the history
+    clear_button = Button(label="Clear History", style=discord.ButtonStyle.danger)
+
+    # Create a refresh button to refresh the embed
+    refresh_button = Button(label="Refresh", style=discord.ButtonStyle.primary)
+
+    # Callback function to clear the history
+    async def clear_history_callback(interaction: discord.Interaction):
+        command_history_list.clear()  # Clear the command history
+        await interaction.response.send_message("Command history has been cleared.", ephemeral=True)
+        # Refresh the embed after clearing
+        await interaction.message.edit(embed=embed)
+
+    # Callback function for the refresh button
+    async def refresh_callback(interaction: discord.Interaction):
+        # Refresh the embed
+        await interaction.response.edit_message(embed=embed)
+
+    clear_button.callback = clear_history_callback
+    refresh_button.callback = refresh_callback
+
+    # Add the buttons to the view
+    view = View()
+    view.add_item(clear_button)
+    view.add_item(refresh_button)
+
+    # Send the embed with buttons as a response
+    await interaction.response.send_message(embed=embed, view=view)
 
 # Event listener to track command usage
 @bot.event
