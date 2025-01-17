@@ -11,8 +11,12 @@ import sys
 from watchdog.observers import Observer
 from watchdog.events import FileSystemEventHandler
 import time  # Removed the stray colon here
+from collections import deque
 
-TOKEN = os.getenv("BOT_TOKEN")
+# Global variables
+command_history_list = deque(maxlen=30)  # Stores last 30 commands
+
+TOKEN = ("BOT_TOKEN")
 
 # Initialize the bot with no intents (default intents)
 bot = commands.Bot(command_prefix="!", intents=discord.Intents.default())
@@ -52,6 +56,7 @@ def start_watchdog(path_to_watch='.'):
     observer.join()
 
 # Function to fetch memes from an API based on a search term
+# Function to fetch memes from the new API
 # Function to fetch memes from the new API
 def get_meme(search_query=None):
     url = f"https://meme-api.com/gimme/{search_query}" if search_query else "https://meme-api.com/gimme/50"  # Updated to use the new API endpoint
@@ -194,15 +199,13 @@ async def vote(interaction: discord.Interaction):
 
     await interaction.response.send_message(embed=embed, view=view)
 
-@bot.tree.command(name="meme", description="Fetch and post a meme instantly.")
-async def meme(interaction: discord.Interaction, search_query: str = None):
+# Command: /meme - Fetch and post a meme instantly.
+@bot.tree.command(name="meme", description="Fetch and post a meme instantly. The search category is required.")
+async def meme(interaction: discord.Interaction, search_query: str):
     global memes_posted
     await interaction.response.defer()
 
-    # If no search query is provided, just fetch a random meme
-    if not search_query:
-        search_query = ""
-    
+    # If no search query is provided, it will raise an error, but it's now mandatory in the command.
     meme_url, meme_title = get_meme(search_query)
     if meme_url:
         memes_posted += 1
@@ -338,6 +341,7 @@ async def recentmemes(interaction: discord.Interaction):
     else:
         await interaction.response.send_message("No memes have been posted yet.")
 
+# Command to view the history of commands used
 @bot.tree.command(name="command_history", description="View the history of commands used.")
 async def command_history(interaction: discord.Interaction):
     if command_history_list:
@@ -345,6 +349,12 @@ async def command_history(interaction: discord.Interaction):
         await interaction.response.send_message(history_message)
     else:
         await interaction.response.send_message("No commands have been used yet.")
+
+# Command to clear the command history
+@bot.tree.command(name="clearhistory", description="Clear the command history.")
+async def clearhistory(interaction: discord.Interaction):
+    command_history_list.clear()
+    await interaction.response.send_message("Command history has been cleared.")
 
 # Event listener to track command usage
 @bot.event
