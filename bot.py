@@ -13,10 +13,7 @@ from watchdog.events import FileSystemEventHandler
 import time  # Removed the stray colon here
 from collections import deque
 
-# Global variables
-command_history_list = deque(maxlen=30)  # Stores last 30 commands
-
-TOKEN = ("BOT_TOKEN")
+TOKEN = os.getenv("BOT_TOKEN")
 
 # Initialize the bot with no intents (default intents)
 bot = commands.Bot(command_prefix="!", intents=discord.Intents.default())
