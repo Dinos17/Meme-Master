@@ -257,7 +257,7 @@ async def memes_by_number(interaction: discord.Interaction, count: int):
 
     try:
         # Access the "memes" subreddit
-        subreddit = await reddit.subreddit("memes")
+        subreddit = reddit.subreddit("memes")
 
         # Fetch top memes from the subreddit
         top_memes = subreddit.top(limit=50)  # You can adjust 'limit' if needed
