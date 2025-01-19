@@ -13,6 +13,7 @@ from watchdog.events import FileSystemEventHandler
 import time
 import random
 import praw
+import asyncpraw
 
 client_id = os.getenv("REDDIT_CLIENT_ID")
 secret = os.getenv("REDDIT_SECRET")
