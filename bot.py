@@ -255,15 +255,33 @@ async def memes_by_number(interaction: discord.Interaction, count: int):
         return
 
     try:
-        response = requests.get("https://meme-api.com/gimme/50")  # Fetch 50 memes
-        response.raise_for_status()
-        data = response.json()
-        memes = data.get("memes", [])[:count]  # Get only the requested number of memes
+        # Access the "memes" subreddit
+        subreddit = await reddit.subreddit("memes")
+
+        # Fetch top memes from the subreddit
+        top_memes = subreddit.top(limit=50)  # You can adjust 'limit' if needed
+
+        memes = []
+        async for submission in top_memes:
+            if len(memes) >= count:
+                break
+
+            # Only consider submissions with images
+            if submission.url.endswith(('jpg', 'jpeg', 'png', 'gif')):
+                memes.append({
+                    "title": submission.title,
+                    "url": submission.url,
+                    "postLink": f"https://reddit.com{submission.permalink}",
+                    "subreddit": submission.subreddit.display_name,
+                    "ups": submission.ups,
+                    "author": str(submission.author),
+                })
 
         if not memes:
             await interaction.response.send_message("Couldn't fetch memes at the moment. Please try again later.")
             return
 
+        # Create the embeds for each meme
         embeds = []
         for meme in memes:
             embed = Embed(
@@ -277,9 +295,10 @@ async def memes_by_number(interaction: discord.Interaction, count: int):
             embeds.append(embed)
 
         await interaction.response.send_message(f"Here are your {count} memes:", embeds=embeds)
-    except requests.exceptions.RequestException as e:
+
+    except asyncpraw.exceptions.PRAWException as e:
         print(f"Error fetching memes: {e}")
-        await interaction.response.send_message("There was an error fetching memes. Please try again later.")
+        await interaction.response.send_message("There was an error fetching memes from Reddit. Please try again later.")
 
 # Step 3: Modify the /setchannel command
 @bot.tree.command(name="setchannel", description="Set the channel for memes to be posted.")
@@ -357,7 +376,6 @@ async def recentmemes(interaction: discord.Interaction):
     else:
         await interaction.response.send_message("No memes have been posted yet.")
 
-# Command to view the history of commands used
 # Command to view the history of commands used
 @bot.tree.command(name="command_history", description="View the history of commands used.")
 async def command_history(interaction: discord.Interaction):
