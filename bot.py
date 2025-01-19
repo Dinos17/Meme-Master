@@ -10,10 +10,17 @@ import os
 import sys
 from watchdog.observers import Observer
 from watchdog.events import FileSystemEventHandler
-import time  # Removed the stray colon here
+import time
 from collections import deque
+import praw
+import random
 
 TOKEN = os.getenv("BOT_TOKEN")
+
+# Accessing environment variables
+client_id = os.getenv("REDDIT_CLIENT_ID")
+secret = os.getenv("REDDIT_SECRET")
+user_agent = os.getenv("REDDIT_USER_AGENT")
 
 # Initialize the bot with no intents (default intents)
 bot = commands.Bot(command_prefix="!", intents=discord.Intents.default())
@@ -53,16 +60,21 @@ def start_watchdog(path_to_watch='.'):
     observer.join()
 
 # Function to fetch memes from an API based on a search term
-# Function to fetch memes from the new API
-# Function to fetch memes from the new API
-def get_meme(search_query=None):
-    url = f"https://meme-api.com/gimme/{search_query}" if search_query else "https://meme-api.com/gimme/50"  # Updated to use the new API endpoint
+# Step 1: Update the function definition
+def get_meme(subreddit_name="memes"):
     try:
-        response = requests.get(url)
-        response.raise_for_status()
-        data = response.json()
-        return data["url"], data["title"]
-    except requests.exceptions.RequestException as e:
+        # Fetch subreddit posts
+        subreddit = reddit.subreddit(subreddit_name)  # Change `search_query` to `subreddit_name`
+        posts = [post for post in subreddit.hot(limit=50) if not post.stickied and not post.over_18 and post.url.endswith(("jpg", "jpeg", "png", "gif"))]
+        
+        if not posts:
+            return None, "No suitable memes found."
+        
+        # Select a random post from the list of fetched posts
+        post = random.choice(posts)
+        return post.url, post.title
+        
+    except Exception as e:
         print(f"Error fetching meme: {e}")
         return None, None
 
@@ -85,12 +97,12 @@ def format_time(seconds):
         return f"{seconds // 3600} hours {(seconds % 3600) // 60} min"
 
 # Function to post memes to a channel at intervals, with a search query
-async def post_meme_to_channel(channel, interval, search_query):
+async def post_meme_to_channel(channel, interval, subreddit_name):
     global memes_posted, recent_memes
     while True:
         if channel.id in stopped_channels:
             break
-        meme_url, meme_title = get_meme(search_query)
+        meme_url, meme_title = get_meme(subreddit_name)  # Use `subreddit_name` here
         if meme_url:
             recent_memes.append({"url": meme_url, "title": meme_title})
             if len(recent_memes) > 10:
@@ -197,13 +209,14 @@ async def vote(interaction: discord.Interaction):
     await interaction.response.send_message(embed=embed, view=view)
 
 # Command: /meme - Fetch and post a meme instantly.
-@bot.tree.command(name="meme", description="Fetch and post a meme instantly. The search category is required.")
-async def meme(interaction: discord.Interaction, search_query: str):
+@bot.tree.command(name="meme", description="Fetch and post a meme instantly from a specified subreddit.")
+async def meme(interaction: discord.Interaction, subreddit_name: str):
     global memes_posted
     await interaction.response.defer()
 
-    # If no search query is provided, it will raise an error, but it's now mandatory in the command.
-    meme_url, meme_title = get_meme(search_query)
+    # Use `subreddit_name` to fetch the meme from the correct subreddit
+    meme_url, meme_title = get_meme(subreddit_name)  # Ensure `subreddit_name` is passed here
+
     if meme_url:
         memes_posted += 1
         await interaction.followup.send(f"**{meme_title}**\n{meme_url}")
@@ -264,16 +277,17 @@ async def memes_by_number(interaction: discord.Interaction, count: int):
         print(f"Error fetching memes: {e}")
         await interaction.response.send_message("There was an error fetching memes. Please try again later.")
 
+# Step 3: Modify the /setchannel command
 @bot.tree.command(name="setchannel", description="Set the channel for memes to be posted.")
-async def setchannel(interaction: discord.Interaction, channel: discord.TextChannel, search_query: str, interval: str):
+async def setchannel(interaction: discord.Interaction, channel: discord.TextChannel, subreddit_name: str, interval: str):
     try:
-        # Convert search query to lowercase to ensure case-insensitivity
-        search_query = search_query.strip().lower()
+        # Convert subreddit_name to lowercase to ensure case-insensitivity
+        subreddit_name = subreddit_name.strip().lower()
 
         time_in_seconds = parse_time(interval)
-        active_channels[channel.id] = {"channel": channel, "search_query": search_query, "interval": time_in_seconds}
-        asyncio.create_task(post_meme_to_channel(channel, time_in_seconds, search_query))
-        await interaction.response.send_message(f"Set {channel.mention} as a meme channel with search query '{search_query}' and an interval of {interval}.")
+        active_channels[channel.id] = {"channel": channel, "subreddit_name": subreddit_name, "interval": time_in_seconds}
+        asyncio.create_task(post_meme_to_channel(channel, time_in_seconds, subreddit_name))  # Pass `subreddit_name`
+        await interaction.response.send_message(f"Set {channel.mention} as a meme channel with subreddit '{subreddit_name}' and an interval of {interval}.")
     except ValueError:
         await interaction.response.send_message("Invalid time format. Use 'min' for minutes or 'sec' for seconds.")
 
@@ -302,13 +316,13 @@ async def stats(interaction: discord.Interaction):
         embed.add_field(name="Memes Posted", value=str(memes_posted), inline=True)
         embed.add_field(name="Active Channels", value=str(len(active_channels)), inline=True)
         embed.add_field(name="Stopped Channels", value=str(len(stopped_channels)), inline=True)
-        
+
         if active_channels:
             sample_channel = list(active_channels.values())[0]
             interval = sample_channel['interval']
             formatted_interval = format_time(interval)
             embed.add_field(name="Sample Interval", value=formatted_interval, inline=False)
-        
+
         avatar_url = bot.user.avatar.url if bot.user.avatar else bot.user.default_avatar.url
         embed.set_thumbnail(url=avatar_url)
         return embed
