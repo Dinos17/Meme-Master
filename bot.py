@@ -304,12 +304,13 @@ async def stopmemes(interaction: discord.Interaction, channel: discord.TextChann
         await interaction.response.send_message(f"{channel.mention} is not set up for meme posting.")
 
 @bot.tree.command(name="startmemes", description="Resume posting memes in a channel.")
-async def startmemes(interaction: discord.Interaction, channel: discord.TextChannel):
+async def startmemes(interaction: discord.Interaction, channel: discord.TextChannel, subreddit_name: str):
     if channel.id in active_channels and channel.id in stopped_channels:
         stopped_channels.remove(channel.id)
         interval = active_channels[channel.id]["interval"]
-        asyncio.create_task(post_meme_to_channel(channel, interval))
-        await interaction.response.send_message(f"Resumed posting memes in {channel.mention}.")
+        # Pass subreddit_name to the post_meme_to_channel function
+        asyncio.create_task(post_meme_to_channel(channel, interval, subreddit_name))
+        await interaction.response.send_message(f"Resumed posting memes from {subreddit_name} in {channel.mention}.")
     else:
         await interaction.response.send_message(f"{channel.mention} is not set up or already active.")
 
