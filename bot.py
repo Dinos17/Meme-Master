@@ -71,14 +71,14 @@ def get_meme(subreddit_name="memes"):
         # Fetch subreddit posts
         subreddit = reddit.subreddit(subreddit_name)  # Change `search_query` to `subreddit_name`
         posts = [post for post in subreddit.hot(limit=50) if not post.stickied and not post.over_18 and post.url.endswith(("jpg", "jpeg", "png", "gif"))]
-        
+
         if not posts:
             return None, "No suitable memes found."
-        
+
         # Select a random post from the list of fetched posts
         post = random.choice(posts)
         return post.url, post.title
-        
+
     except Exception as e:
         print(f"Error fetching meme: {e}")
         return None, None
@@ -130,6 +130,7 @@ async def help_command(interaction: discord.Interaction):
         embed.add_field(name="/command_history", value="View the history of commands used.", inline=False)
         embed.add_field(name="/vote", value="Vote for the bot on top.gg.", inline=False)
         embed.add_field(name="/memes_by_number", value="Fetch a specific number of memes (up to 50).", inline=False)
+        embed.add_field(name="/joke", value="Fetch and post a random joke.", inline=False)  # Add this line
         return embed
 
     help_embed = generate_help_embed()
@@ -258,7 +259,7 @@ async def memes_by_number(interaction: discord.Interaction, count: int):
     try:
         # Access the 'memes' subreddit
         subreddit = reddit.subreddit("memes")
-        
+
         # Fetch 'count' number of posts from the subreddit
         posts = subreddit.new(limit=count)  # 'limit=count' ensures we're fetching exactly 'count' posts
 
