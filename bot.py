@@ -11,7 +11,6 @@ import sys
 from watchdog.observers import Observer
 from watchdog.events import FileSystemEventHandler
 import time
-from collections import deque
 import praw
 import random
 
