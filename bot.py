@@ -11,8 +11,14 @@ import sys
 from watchdog.observers import Observer
 from watchdog.events import FileSystemEventHandler
 import time
-import praw
 import random
+import praw
+
+reddit = praw.Reddit(
+    client_id=client_id,
+    client_secret=secret,
+    user_agent=user_agent
+)
 
 TOKEN = os.getenv("BOT_TOKEN")
 
