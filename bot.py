@@ -256,36 +256,32 @@ async def memes_by_number(interaction: discord.Interaction, count: int):
         return
 
     try:
-        # Access the "memes" subreddit
+        # Access the 'memes' subreddit
         subreddit = reddit.subreddit("memes")
+        
+        # Fetch 'count' number of posts from the subreddit
+        posts = subreddit.new(limit=count)  # 'limit=count' ensures we're fetching exactly 'count' posts
 
-        # Fetch top memes from the subreddit
-        top_memes = subreddit.top(limit=50)  # You can adjust 'limit' if needed
-
+        # Prepare a list of memes with necessary information
         memes = []
-        async for submission in top_memes:
-            if len(memes) >= count:
-                break
-
-            # Only consider submissions with images
-            if submission.url.endswith(('jpg', 'jpeg', 'png', 'gif')):
-                memes.append({
-                    "title": submission.title,
-                    "url": submission.url,
-                    "postLink": f"https://reddit.com{submission.permalink}",
-                    "subreddit": submission.subreddit.display_name,
-                    "ups": submission.ups,
-                    "author": str(submission.author),
-                })
+        for post in posts:  # Use a regular 'for' loop to iterate over the posts
+            memes.append({
+                "title": post.title,
+                "url": post.url,
+                "ups": post.ups,
+                "author": post.author.name if post.author else "Unknown",
+                "postLink": f"https://www.reddit.com{post.permalink}",
+                "subreddit": post.subreddit.display_name,
+            })
 
         if not memes:
             await interaction.response.send_message("Couldn't fetch memes at the moment. Please try again later.")
             return
 
-        # Create the embeds for each meme
+        # Create embeds for each meme to display them nicely
         embeds = []
         for meme in memes:
-            embed = Embed(
+            embed = discord.Embed(
                 title=meme["title"],
                 url=meme["postLink"],
                 description=f"Subreddit: {meme['subreddit']}",
@@ -295,11 +291,11 @@ async def memes_by_number(interaction: discord.Interaction, count: int):
             embed.set_footer(text=f"👍 {meme['ups']} | Author: {meme['author']}")
             embeds.append(embed)
 
+        # Send the embed messages with memes to Discord
         await interaction.response.send_message(f"Here are your {count} memes:", embeds=embeds)
-
     except asyncpraw.exceptions.PRAWException as e:
         print(f"Error fetching memes: {e}")
-        await interaction.response.send_message("There was an error fetching memes from Reddit. Please try again later.")
+        await interaction.response.send_message("There was an error fetching memes. Please try again later.")
 
 # Step 3: Modify the /setchannel command
 @bot.tree.command(name="setchannel", description="Set the channel for memes to be posted.")
