@@ -53,6 +53,11 @@ A Discord bot built using Python and the discord.py library. This bot provides v
 - Use `/gif [keyword]` to search and display a random GIF based on a specified keyword.
 - Use `/command_history` to view the history of commands used.
 
+## Invitation Links
+
+- **Invite the Bot**: [Add the Discord Meme Bot to your server](https://discord.com/oauth2/authorize?client_id=1325110227225546854&permissions=2147600384&integration_type=0&scope=bot+applications.commands)
+- **Join the Support Server**: [Join our Discord Server](https://discord.gg/QegFaGhmmq)
+
 ## Deployment
 
 - The bot can be deployed on platforms that support Python, such as Heroku. Ensure the `Procfile` is correctly set up for deployment.
