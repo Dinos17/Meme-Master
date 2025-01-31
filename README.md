@@ -6,6 +6,8 @@ This is a Discord bot that posts memes to a specified channel at regular interva
 
 - Set a specific channel to receive memes using a slash command.
 - Automatically fetches and posts memes every 10 seconds.
+- Fetch random jokes and GIFs.
+- Command history tracking.
 
 ## Setup
 
@@ -17,33 +19,28 @@ This is a Discord bot that posts memes to a specified channel at regular interva
 
 ### Installation
 
-1. Clone the repository:
-
+1. Clone the repository:  
    ```bash
-   git clone <repository-url>
-   cd Discord_Bot
+   git clone https://github.com/Dinos17/Auto-memer.git  
+   cd Auto-memer
    ```
 
-2. Install the required packages:
-
+2. Install the required packages:  
    ```bash
    pip install -r requirements.txt
    ```
 
-3. Set up your environment variable for the Discord bot token:
-
-   On Windows:
+3. Set up your environment variable for the Discord bot token:  
+   On Windows:  
    ```bash
-   set DISCORD_TOKEN=your_token_here
-   ```
-
-   On macOS/Linux:
+   set DISCORD_TOKEN=your_token_here  
+   ```  
+   On macOS/Linux:  
    ```bash
    export DISCORD_TOKEN=your_token_here
    ```
 
-4. Run the bot:
-
+4. Run the bot:  
    ```bash
    python bot.py
    ```
@@ -52,6 +49,9 @@ This is a Discord bot that posts memes to a specified channel at regular interva
 
 - Use the `/setchannel` slash command in your Discord server to specify which channel should receive memes.
 - The bot will start posting memes to the specified channel every 10 seconds.
+- Use `/random_joke` to fetch a random joke.
+- Use `/gif [keyword]` to search and display a random GIF based on a specified keyword.
+- Use `/command_history` to view the history of commands used.
 
 ## Deployment
 
@@ -66,4 +66,14 @@ This is a Discord bot that posts memes to a specified channel at regular interva
 
 ## License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details. 
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## About
+
+This bot is designed to enhance your Discord experience by providing fun and engaging content through memes, jokes, and GIFs.
+
+## Acknowledgments
+
+- [discord.py](https://discordpy.readthedocs.io/en/stable/) - The library used to interact with the Discord API.
+- [PRAW](https://praw.readthedocs.io/en/latest/) - The Python Reddit API Wrapper for fetching memes from Reddit.
+- [aiohttp](https://docs.aiohttp.org/en/stable/) - Asynchronous HTTP client for making API requests.
