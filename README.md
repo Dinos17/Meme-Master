@@ -1,5 +1,10 @@
 # Discord Meme Bot ![Discord Meme Bot](https://img.shields.io/badge/Discord-Bot-blue?style=flat&logo=discord)
 
+## Invitation Links
+
+- **Invite the Bot**: [Add the Discord Meme Bot to your server](https://discord.com/oauth2/authorize?client_id=1325110227225546854&permissions=2147600384&integration_type=0&scope=bot+applications.commands)
+- **Join the Support Server**: [Join our Discord Server](https://discord.gg/QegFaGhmmq)
+
 A Discord bot built using Python and the discord.py library. This bot provides various functionalities, including meme fetching, joke telling, and command history tracking.
 
 ## Features
@@ -52,11 +57,6 @@ A Discord bot built using Python and the discord.py library. This bot provides v
 - Use `/random_joke` to fetch a random joke.
 - Use `/gif [keyword]` to search and display a random GIF based on a specified keyword.
 - Use `/command_history` to view the history of commands used.
-
-## Invitation Links
-
-- **Invite the Bot**: [Add the Discord Meme Bot to your server](https://discord.com/oauth2/authorize?client_id=1325110227225546854&permissions=2147600384&integration_type=0&scope=bot+applications.commands)
-- **Join the Support Server**: [Join our Discord Server](https://discord.gg/QegFaGhmmq)
 
 ## Deployment
 
