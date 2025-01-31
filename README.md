@@ -1,6 +1,6 @@
-# Discord Meme Bot
+# Discord Meme Bot ![Discord Meme Bot](https://img.shields.io/badge/Discord-Bot-blue?style=flat&logo=discord)
 
-This is a Discord bot that posts memes to a specified channel at regular intervals. It uses the Discord API and a public meme API to fetch and send memes.
+A Discord bot built using Python and the discord.py library. This bot provides various functionalities, including meme fetching, joke telling, and command history tracking.
 
 ## Features
 
