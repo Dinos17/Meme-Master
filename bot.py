@@ -26,7 +26,6 @@ logging.basicConfig(level=logging.ERROR)
 TOKEN = os.getenv("BOT_TOKEN")  # Use environment variable for TOKEN
 CLIENT_ID = os.getenv("REDDIT_CLIENT_ID")  # Use environment variable for client_id
 CLIENT_SECRET = os.getenv("REDDIT_SECRET")  # Use environment variable for client_secret
-USER_AGENT = os.getenv("REDDIT_USER_AGENT")
 
 reddit = praw.Reddit(
     client_id=CLIENT_ID,  # Use the loaded client_id
@@ -53,6 +52,9 @@ SUPPORT_CHANNEL_ID = 1331983087898460160  # Replace with your actual channel ID
 # Global variable to store last answers
 last_answers = []
 
+# Global set to keep track of sent GIFs
+sent_gifs = set()
+
 # ===== UTILITY FUNCTIONS =====
 def parse_time(time_str):
     time_str = time_str.lower().strip()
@@ -70,37 +72,36 @@ def format_time(seconds):
     else:
         return f"{seconds // 3600} hours {(seconds % 3600) // 60} min"
 
-def get_meme(subreddit_name="memes"):
+async def get_meme(subreddit_name="memes"):
     try:
-        subreddit = reddit.subreddit(subreddit_name)
-        posts = [
-            post
-            for post in subreddit.hot(limit=50)
-            if post.url.endswith(("jpg", "jpeg", "png", "gif"))
-        ]
+        async with aiohttp.ClientSession() as session:
+            async with session.get(f"https://www.reddit.com/r/{subreddit_name}/hot.json?limit=50", headers={"User-Agent": "Auto Memer"}) as response:
+                data = await response.json()
+                posts = [post for post in data['data']['children'] if post['data']['url'].endswith(("jpg", "jpeg", "png", "gif"))]
 
-        if not posts:
-            return None, "No suitable memes found."
+                if not posts:
+                    return None, "No suitable memes found."
 
-        post = random.choice(posts)
-        return post.url, post.title
+                post = random.choice(posts)
+                return post['data']['url'], post['data']['title']
 
     except Exception as e:
         print(f"Error fetching meme: {e}")
         return None, None
 
-def get_joke():
+async def get_joke():
     try:
-        response = requests.get("https://v2.jokeapi.dev/joke/Programming,Miscellaneous?type=twopart")
-        if response.status_code == 200:
-            joke_data = response.json()
-            if joke_data["type"] == "twopart":
-                return joke_data["setup"], joke_data["delivery"]
-            else:
-                return joke_data["joke"], None  # For single-part jokes
-        else:
-            print("Failed to fetch joke.")
-            return None, None
+        async with aiohttp.ClientSession() as session:
+            async with session.get("https://v2.jokeapi.dev/joke/Programming,Miscellaneous?type=twopart") as response:
+                if response.status == 200:
+                    joke_data = await response.json()
+                    if joke_data["type"] == "twopart":
+                        return joke_data["setup"], joke_data["delivery"]
+                    else:
+                        return joke_data["joke"], None  # For single-part jokes
+                else:
+                    print("Failed to fetch joke.")
+                    return None, None
     except Exception as e:
         print(f"Error fetching joke: {e}")
         return None, None
@@ -111,7 +112,7 @@ async def post_meme_to_channel(channel, interval, subreddit_name):
     while True:
         if channel.id in stopped_channels:
             break
-        meme_url, meme_title = get_meme(subreddit_name)  # Remove await here
+        meme_url, meme_title = await get_meme(subreddit_name)  # Remove await here
         if meme_url:
             await channel.send(f"**{meme_title}**\n{meme_url}")
             memes_posted += 1
@@ -154,7 +155,7 @@ async def on_message(message):
     # Keyword-based trigger
     keywords = ["post a meme", "send meme"]
     if any(keyword in message.content.lower() for keyword in keywords):
-        meme_url, meme_title = get_meme("funny")  # Remove await here
+        meme_url, meme_title = await get_meme("funny")  # Remove await here
         if meme_url:
             await message.channel.send(f"**{meme_title}**\n{meme_url}")
         else:
@@ -271,7 +272,7 @@ async def meme(
     await interaction.response.defer()  # Defer response if meme takes time to fetch
     
     try:
-        meme_url, meme_title = get_meme(subreddit)  # Remove await here
+        meme_url, meme_title = await get_meme(subreddit)  # Remove await here
         if meme_url:
             embed = discord.Embed(
                 title=meme_title,
@@ -287,7 +288,7 @@ async def meme(
             async def refresh_callback(button_interaction: discord.Interaction):
                 global meme_command_count  # Access the global counter
                 meme_command_count += 1  # Increment the counter for the new meme
-                new_meme_url, new_meme_title = get_meme(subreddit)  # Remove await here
+                new_meme_url, new_meme_title = await get_meme(subreddit)  # Remove await here
                 if new_meme_url:
                     new_embed = discord.Embed(
                         title=new_meme_title,
@@ -672,11 +673,11 @@ async def command_history(interaction: discord.Interaction):
     if not command_history_list:
         await interaction.response.send_message("No commands have been used yet.")
         return
-        
+    
     embed = discord.Embed(
         title="Command History",
-        description="Last 30 commands used:",
-        color=discord.Color.blue()
+        description="Here are the last 30 commands used:",
+        color=discord.Color.green()
     )
     
     # Group commands and count their occurrences
@@ -685,8 +686,16 @@ async def command_history(interaction: discord.Interaction):
         command_counts[cmd] = command_counts.get(cmd, 0) + 1
     
     # Format the command history
-    history_text = "\n".join(f"{cmd}: {count} times" for cmd, count in command_counts.items())
-    embed.add_field(name="Commands", value=history_text if history_text else "No commands used yet")
+    history_text = "\n".join(f"**{cmd}**: {count} times" for cmd, count in command_counts.items())
+    
+    # Add the command history to the embed
+    if history_text:
+        embed.add_field(name="Commands Used", value=history_text, inline=False)
+    else:
+        embed.add_field(name="Commands Used", value="No commands used yet.", inline=False)
+
+    # Add a footer for additional information
+    embed.set_footer(text=f"Requested by {interaction.user.name}", icon_url=interaction.user.avatar.url)
     
     await interaction.response.send_message(embed=embed)
 
@@ -705,7 +714,7 @@ async def random_joke(
         )
         return
 
-    setup, punchline = get_joke()
+    setup, punchline = await get_joke()
     
     if setup and punchline:
         # Create embed
@@ -721,7 +730,7 @@ async def random_joke(
         new_joke_button = Button(label="New Joke", style=discord.ButtonStyle.primary, emoji="🎲")
         
         async def new_joke_callback(button_interaction: discord.Interaction):
-            new_setup, new_punchline = get_joke()
+            new_setup, new_punchline = await get_joke()
             if new_setup and new_punchline:
                 new_embed = discord.Embed(
                     title="😄 Random Joke",
@@ -948,6 +957,34 @@ async def eight_ball(interaction: discord.Interaction, question: str):
     view.add_item(history_button)
 
     await interaction.response.send_message(embed=embed, view=view)
+
+@bot.tree.command(name="gif", description="Search and display a random GIF based on a specified keyword.")
+async def gif(interaction: discord.Interaction, keyword: str):
+    await interaction.response.defer()  # Acknowledge the interaction
+    
+    async with aiohttp.ClientSession() as session:
+        try:
+            # Removed print statement for fetching GIFs
+            async with session.get(f"https://api.giphy.com/v1/gifs/search?api_key=upEsZXwiOekDKkRmMwCRpKUHSLz3OXzu&q={keyword}&limit=5&offset=0&rating=g&lang=en") as response:
+                response.raise_for_status()  # Raise an error for bad responses
+                data = await response.json()
+                
+                if data['data']:
+                    available_gifs = [gif for gif in data['data'] if gif['images']['original']['url'] not in sent_gifs]
+                    
+                    if available_gifs:
+                        selected_gif = random.choice(available_gifs)
+                        gif_url = selected_gif['images']['original']['url']  # Get the selected GIF URL
+                        sent_gifs.add(gif_url)  # Add the GIF URL to the sent list
+                        await interaction.followup.send(gif_url)
+                    else:
+                        await interaction.followup.send("All available GIFs have already been sent for this keyword.")
+                else:
+                    await interaction.followup.send("No GIFs found for that keyword.")
+        except aiohttp.ClientError as e:
+            await interaction.followup.send(f"An error occurred while fetching GIFs: {str(e)}")
+        except Exception as e:
+            await interaction.followup.send(f"An unexpected error occurred: {str(e)}")
 
 # ===== MAIN EXECUTION =====
 def run_bot():
