@@ -194,7 +194,8 @@ async def help_command(interaction: discord.Interaction):
             name="🎮 Fun Commands",
             value=(
                 "`/random_joke [channel]` - Fetch and post a random joke\n"
-                "`/ping` - Check bot's latency"
+                "`/ping` - Check bot's latency\n"
+                "`/gif <keyword>` - Search and display a random GIF based on a keyword"
             ),
             inline=False
         )
