@@ -34,8 +34,7 @@ reddit = praw.Reddit(
 )
 
 # Create the bot without any specific intents
-intents = discord.Intents.default()  # Create default intents
-bot = commands.Bot(command_prefix="/", intents=intents)  # Pass intents to the bot
+bot = commands.Bot(command_prefix="/")  # No intents passed to the bot
 
 # ===== GLOBAL VARIABLES =====
 active_channels = {}
@@ -178,13 +177,15 @@ async def help_command(interaction: discord.Interaction):
         embed.add_field(
             name="🎭 Meme Commands",
             value=(
-                "`/meme [subreddit]` - Fetch and post a meme with refresh option\n"
-                "`/meme_search <keyword>` - Search for memes with specific keywords\n"
-                "`/top_memes [timeframe] [count]` - Get top memes from a time period\n"
-                "`/setchannel` - Set a channel for auto-posting memes\n"
-                "`/stopmemes` - Stop posting memes in a channel\n"
-                "`/startmemes` - Resume posting memes in a channel\n"
-                "`/memes_by_number <count>` - Fetch multiple memes at once"
+                "</meme:1331251925491908791> - Fetch and post a meme with refresh option\n"
+                "</meme_search:1333204607261872189> - Search for memes with specific keywords\n"
+                "</top_memes:1333204607261872190> - Get top memes from a time period\n"
+                "</setchannel:1325134226810736711> - Set a channel for auto-posting memes\n"
+
+                "</stopmemes:1325622113557549127> - Stop posting memes in a channel\n"
+                "</startmemes:1328806127496073250> - Resume posting memes in a channel\n"
+                "</memes_by_number:1329566549736034336> - Fetch multiple memes at once"
+
             ),
             inline=False
         )
@@ -193,21 +194,23 @@ async def help_command(interaction: discord.Interaction):
         embed.add_field(
             name="🎮 Fun Commands",
             value=(
-                "`/random_joke [channel]` - Fetch and post a random joke\n"
-                "`/ping` - Check bot's latency\n"
-                "`/gif <keyword>` - Search and display a random GIF based on a keyword"
+                "</random_joke:1333204607261872192> - Fetch and post a random joke\n"
+                "</ping:1333204607261872193> - Check bot's latency\n"
+                "</gif:1334852877360828456> - Search and display a random GIF based on a keyword"
             ),
             inline=False
+
         )
         
         # Info Commands
         embed.add_field(
             name="ℹ️ Information Commands",
             value=(
-                "`/serverinfo` - Display server information\n"
-                "`/userinfo [user]` - Show information about a user\n"
-                "`/stats` - Show bot statistics\n"
-                "`/command_history` - View command usage history"
+                "</serverinfo:1333204607261872194> - Display server information\n"
+                "</userinfo:1333204607261872195> - Show information about a user\n"
+                "</stats:1326171297440600074> - Show bot statistics\n"
+                "</command_history:1331251925491908793> - View command usage history"
+
             ),
             inline=False
         )
@@ -216,10 +219,11 @@ async def help_command(interaction: discord.Interaction):
         embed.add_field(
             name="🛠️ Utility Commands",
             value=(
-                "`/invite` - Get bot invite link\n"
-                "`/report <issue>` - Report an issue with the bot"
+                "</invite:1333204607261872191> - Get bot invite link\n"
+                "</report:1333204607261872196> - Report an issue with the bot"
             ),
             inline=False
+
         )
 
         embed.set_footer(text="[Optional] parameters, <Required> parameters")
@@ -585,6 +589,11 @@ async def invite(interaction: discord.Interaction):
 @bot.tree.command(name="setchannel", description="Set the channel for memes to be posted.")
 async def setchannel(interaction: discord.Interaction, channel: discord.TextChannel, search_query: str, interval: str):
     try:
+        # Ensure the channel is a valid TextChannel
+        if not isinstance(channel, discord.TextChannel):
+            await interaction.response.send_message("Invalid channel specified. Please mention a valid text channel.", ephemeral=True)
+            return
+        
         search_query = search_query.strip().lower()
         time_in_seconds = parse_time(interval)
 
