@@ -33,7 +33,7 @@ reddit = praw.Reddit(
     user_agent="Auto Memer",
 )
 
-# Create the bot without any specific intents
+intents = discord.Intents.default()  # Create default intents
 bot = commands.Bot(command_prefix="/")  # No intents passed to the bot
 
 # ===== GLOBAL VARIABLES =====
