@@ -33,8 +33,12 @@ reddit = praw.Reddit(
     user_agent="Auto Memer",
 )
 
+# Create default intents
 intents = discord.Intents.default()  # Create default intents
-bot = commands.Bot(command_prefix="/")  # No intents passed to the bot
+# You can enable specific intents if needed, e.g., intents.message_content = True
+
+# Create the bot with specific intents
+bot = commands.Bot(command_prefix="/", intents=intents)  # Pass intents to the bot
 
 # ===== GLOBAL VARIABLES =====
 active_channels = {}
