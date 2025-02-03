@@ -625,7 +625,10 @@ async def stopmemes(interaction: discord.Interaction, channel: discord.TextChann
 
 @bot.tree.command(name="startmemes", description="Resume posting memes in a channel.")
 async def startmemes(
-    interaction: discord.Interaction, channel: discord.TextChannel, subreddit_name: str
+    interaction: discord.Interaction, 
+    channel: discord.TextChannel, 
+    subreddit_name: str, 
+    interval: str  # Added interval parameter
 ):
     if channel.id in active_channels and channel.id in stopped_channels:
         stopped_channels.remove(channel.id)
