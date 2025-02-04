@@ -215,7 +215,7 @@ async def help_command(interaction: discord.Interaction):
                 "</userinfo:1333204607261872195> - Show information about a user\n"
                 "</stats:1326171297440600074> - Show bot statistics\n"
                 "</command_history:1331251925491908793> - View command usage history\n"
-                "</server_counter::1111111111111111111> - Show how many servers the bot has joined"
+                "</server_counter:1326171297440600076> - Show how many servers the bot has joined"
             ),
             inline=False
         )
