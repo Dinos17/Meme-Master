@@ -18,6 +18,7 @@ from discord.app_commands import checks
 from datetime import datetime, timedelta
 import aiohttp
 import logging
+import json  # Make sure to import json at the top of your file
 
 # Set logging level to ERROR to suppress WARNING and INFO messages
 logging.basicConfig(level=logging.ERROR)
@@ -214,7 +215,7 @@ async def help_command(interaction: discord.Interaction):
                 "</userinfo:1333204607261872195> - Show information about a user\n"
                 "</stats:1326171297440600074> - Show bot statistics\n"
                 "</command_history:1331251925491908793> - View command usage history\n"
-                "</server_counter:1336443568696463401> - Show how many servers the bot has joined"
+                "</server_counter::1111111111111111111> - Show how many servers the bot has joined"
             ),
             inline=False
         )
@@ -541,13 +542,20 @@ async def memes_by_number(interaction: discord.Interaction, count: int):
 
         # Send the embed messages with memes to Discord, limiting to 10 embeds per message
         for i in range(0, len(embeds), 10):
-            await interaction.response.send_message(
-                f"Here are your memes {i + 1}-{min(i + 10, len(embeds))}:",
-                embeds=embeds[i:i + 10]
-            )
+            # Ensure only one response is sent for the interaction
+            if i == 0:
+                await interaction.response.send_message(
+                    f"Here are your memes {i + 1}-{min(i + 10, len(embeds))}:",
+                    embeds=embeds[i:i + 10]
+                )
+            else:
+                await interaction.followup.send(
+                    f"Here are your memes {i + 1}-{min(i + 10, len(embeds))}:",
+                    embeds=embeds[i:i + 10]
+                )
     except asyncpraw.exceptions.PRAWException as e:
         print(f"Error fetching memes: {e}")
-        await interaction.response.send_message(
+        await interaction.followup.send(
             "There was an error fetching memes. Please try again later."
         )
 
