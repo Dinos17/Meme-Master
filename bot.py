@@ -18,7 +18,6 @@ from discord.app_commands import checks
 from datetime import datetime, timedelta
 import aiohttp
 import logging
-import json  # Make sure to import json at the top of your file
 
 # Set logging level to ERROR to suppress WARNING and INFO messages
 logging.basicConfig(level=logging.ERROR)
@@ -123,18 +122,15 @@ async def post_meme_to_channel(channel, interval, subreddit_name):
         
         await asyncio.sleep(interval)
 
-async def fetch_data(url):
-    async with aiohttp.ClientSession() as session:
-        async with session.get(url) as response:
-            return await response.json()
+def get_server_count():
+    return len(bot.guilds)  # Count the number of servers the bot has joined
 
 # ===== EVENT HANDLERS =====
 @bot.event
 async def on_ready():
     print(f"Bot is ready as {bot.user.name}")
-    await update_server_count()  # Update server count on startup
-    server_count = len(bot.guilds)
-    print(f'Bot is in {server_count} servers.')  # Log the number of servers
+    server_count = get_server_count()  # Get the server count
+    print(f"The bot is in {server_count} servers.")
 
     # Sync commands on startup
     try:
@@ -153,16 +149,6 @@ async def on_ready():
         print(f"Error syncing commands: {e}")
     
     await bot.change_presence(status=discord.Status.online)  # Set the bot's status
-
-@bot.event
-async def on_guild_join(guild):
-    print(f"Joined a new guild: {guild.name}")
-    await update_server_count()  # Update server count when joining a new guild
-
-@bot.event
-async def on_guild_remove(guild):
-    print(f"Left a guild: {guild.name}")
-    await update_server_count()  # Update server count when leaving a guild
 
 @bot.event
 async def on_message(message):
@@ -189,7 +175,8 @@ async def on_interaction(interaction: discord.Interaction):
 @bot.tree.command(name="help", description="Show a list of all available commands.")
 async def help_command(interaction: discord.Interaction):
     def generate_help_embed():
-        embed = Embed(title="Help - Available Commands", color=discord.Color.blue())
+        server_count = len(bot.guilds)  # Count the number of servers the bot has joined
+        embed = Embed(title="Help - Available Commands", description=f"- Bot is currently in {server_count} servers", color=discord.Color.blue())
         
         # Meme Commands
         embed.add_field(
@@ -217,7 +204,6 @@ async def help_command(interaction: discord.Interaction):
                 "</gif:1334852877360828456> - Search and display a random GIF based on a keyword"
             ),
             inline=False
-
         )
         
         # Info Commands
@@ -227,12 +213,12 @@ async def help_command(interaction: discord.Interaction):
                 "</serverinfo:1333204607261872194> - Display server information\n"
                 "</userinfo:1333204607261872195> - Show information about a user\n"
                 "</stats:1326171297440600074> - Show bot statistics\n"
-                "</command_history:1331251925491908793> - View command usage history"
-
+                "</command_history:1331251925491908793> - View command usage history\n"
+                "</server_counter::1111111111111111111> - Show how many servers the bot has joined"
             ),
             inline=False
         )
-        
+
         # Utility Commands
         embed.add_field(
             name="🛠️ Utility Commands",
@@ -241,7 +227,6 @@ async def help_command(interaction: discord.Interaction):
                 "</report:1333204607261872196> - Report an issue with the bot"
             ),
             inline=False
-
         )
 
         embed.set_footer(text="[Optional] parameters, <Required> parameters")
@@ -266,6 +251,7 @@ async def help_command(interaction: discord.Interaction):
     view.add_item(invite_button)
     view.add_item(close_button)
 
+    # Acknowledge the interaction and send the help embed
     await interaction.response.send_message(embed=help_embed, view=view)
 
 @bot.tree.command(name="vote", description="Vote for the bot on top.gg.")
@@ -1017,6 +1003,11 @@ async def gif(interaction: discord.Interaction, keyword: str):
         except Exception as e:
             await interaction.followup.send(f"An unexpected error occurred: {str(e)}")
 
+@bot.tree.command(name="server_counter", description="Show how many servers the bot has joined.")
+async def server_counter(interaction: discord.Interaction):
+    server_count = len(bot.guilds)  # Count the number of servers the bot has joined
+    await interaction.response.send_message(f"The bot is currently in {server_count} servers.")
+
 # ===== MAIN EXECUTION =====
 def run_bot():
     try:
@@ -1024,17 +1015,6 @@ def run_bot():
     except Exception as e:
         print(f"Error occurred: {e}")
         sys.exit(1)
-
-async def update_server_count():
-    server_count = len(bot.guilds)
-    print(f'Bot is in {server_count} servers.')  # Log the number of servers
-
-    # Define the path for the server_count.json file in the Bot_site directory
-    json_file_path = os.path.join(os.path.dirname(__file__), 'Bot_site', 'server_count.json')
-
-    # Write the server count to a JSON file
-    with open(json_file_path, 'w') as f:
-        json.dump({"server_count": server_count}, f)
 
 if __name__ == "__main__":
     run_bot()
