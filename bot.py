@@ -18,6 +18,7 @@ from discord.app_commands import checks
 from datetime import datetime, timedelta
 import aiohttp
 import logging
+import json  # Make sure to import json at the top of your file
 
 # Set logging level to ERROR to suppress WARNING and INFO messages
 logging.basicConfig(level=logging.ERROR)
@@ -131,7 +132,10 @@ async def fetch_data(url):
 @bot.event
 async def on_ready():
     print(f"Bot is ready as {bot.user.name}")
-    
+    await update_server_count()  # Update server count on startup
+    server_count = len(bot.guilds)
+    print(f'Bot is in {server_count} servers.')  # Log the number of servers
+
     # Sync commands on startup
     try:
         global last_sync_time
@@ -149,6 +153,16 @@ async def on_ready():
         print(f"Error syncing commands: {e}")
     
     await bot.change_presence(status=discord.Status.online)  # Set the bot's status
+
+@bot.event
+async def on_guild_join(guild):
+    print(f"Joined a new guild: {guild.name}")
+    await update_server_count()  # Update server count when joining a new guild
+
+@bot.event
+async def on_guild_remove(guild):
+    print(f"Left a guild: {guild.name}")
+    await update_server_count()  # Update server count when leaving a guild
 
 @bot.event
 async def on_message(message):
@@ -1010,6 +1024,17 @@ def run_bot():
     except Exception as e:
         print(f"Error occurred: {e}")
         sys.exit(1)
+
+async def update_server_count():
+    server_count = len(bot.guilds)
+    print(f'Bot is in {server_count} servers.')  # Log the number of servers
+
+    # Define the path for the server_count.json file in the Bot_site directory
+    json_file_path = os.path.join(os.path.dirname(__file__), 'Bot_site', 'server_count.json')
+
+    # Write the server count to a JSON file
+    with open(json_file_path, 'w') as f:
+        json.dump({"server_count": server_count}, f)
 
 if __name__ == "__main__":
     run_bot()
