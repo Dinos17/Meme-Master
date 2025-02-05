@@ -858,6 +858,14 @@ async def userinfo(interaction: discord.Interaction, user: discord.Member = None
 
 @bot.tree.command(name="report", description="Report an issue with the bot.")
 async def report(interaction: discord.Interaction, issue: str):
+    # Check if the command is used in a guild context
+    if interaction.guild is None:
+        await interaction.response.send_message(
+            "This command cannot be used in direct messages. Please use it in a server.",
+            ephemeral=True
+        )
+        return
+
     # Create embed for the report
     embed = discord.Embed(
         title="🐛 Bug Report",
