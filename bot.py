@@ -18,7 +18,6 @@ from discord.app_commands import checks
 from datetime import datetime, timedelta
 import aiohttp
 import logging
-import json  # Make sure to import json at the top of your file
 
 # Set logging level to ERROR to suppress WARNING and INFO messages
 logging.basicConfig(level=logging.ERROR)
@@ -79,7 +78,10 @@ def format_time(seconds):
 async def get_meme(subreddit_name="memes"):
     try:
         async with aiohttp.ClientSession() as session:
-            async with session.get(f"https://www.reddit.com/r/{subreddit_name}/hot.json?limit=50", headers={"User-Agent": "Auto Memer"}) as response:
+            headers = {
+                "User-Agent": "MemeMaster v1.0 (by /u/Dinos_17)"  # Updated with your Reddit username
+            }
+            async with session.get(f"https://www.reddit.com/r/{subreddit_name}/hot.json?limit=50", headers=headers) as response:
                 data = await response.json()
                 posts = [post for post in data['data']['children'] if post['data']['url'].endswith(("jpg", "jpeg", "png", "gif"))]
 
