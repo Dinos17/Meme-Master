@@ -50,7 +50,7 @@ last_sync_time = None
 SYNC_COOLDOWN = 60
 
 # Define your support server channel ID
-SUPPORT_CHANNEL_ID = 1333083471689551933  # Replace with your actual channel ID
+SUPPORT_CHANNEL_ID = 1333205807000453150  # Replace with your actual channel ID
 
 # Global variable to store last answers
 last_answers = []
