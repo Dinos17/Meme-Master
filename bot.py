@@ -50,7 +50,7 @@ last_sync_time = None
 SYNC_COOLDOWN = 60
 
 # Define your support server channel ID
-SUPPORT_CHANNEL_ID = 1333205807000453150  # Replace with your actual channel ID
+SUPPORT_CHANNEL_ID = 1333083471689551933  # Replace with your actual channel ID
 
 # Global variable to store last answers
 last_answers = []
@@ -866,6 +866,9 @@ async def report(interaction: discord.Interaction, issue: str):
         )
         return
 
+    # Get the user who made the report
+    reporter = interaction.user
+
     # Create embed for the report
     embed = discord.Embed(
         title="🐛 Bug Report",
@@ -873,7 +876,7 @@ async def report(interaction: discord.Interaction, issue: str):
         color=discord.Color.red(),
         timestamp=datetime.now()
     )
-    embed.add_field(name="Reported by", value=f"{interaction.user.mention} ({interaction.user.id})")
+    embed.add_field(name="Reported by", value=f"{reporter.mention} ({reporter.id})")
     embed.add_field(name="Server", value=f"{interaction.guild.name} ({interaction.guild.id})")
 
     # Get the support channel
@@ -890,10 +893,12 @@ async def report(interaction: discord.Interaction, issue: str):
         async def acknowledge_callback(button_interaction: discord.Interaction):
             await button_interaction.response.send_message("Report acknowledged.", ephemeral=True)
             await report_message.add_reaction("✅")  # Add a checkmark reaction to the report message
+            await reporter.send("Your report has been acknowledged by the staff.")  # DM the reporter
 
         async def resolve_callback(button_interaction: discord.Interaction):
-            await button_interaction.response.send_message("Report resolved.", ephemeral=True)
+            await button_interaction.response.send_message("Report solved.", ephemeral=True)
             await report_message.add_reaction("🔒")  # Add a lock reaction to indicate resolution
+            await reporter.send("Your report has been solved by the staff.")  # DM the reporter
 
         acknowledge_button.callback = acknowledge_callback
         resolve_button.callback = resolve_callback
