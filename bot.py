@@ -50,7 +50,7 @@ last_sync_time = None
 SYNC_COOLDOWN = 60
 
 # Define your support server channel ID
-SUPPORT_CHANNEL_ID = 1333205807000453150  # Replace with your actual channel ID
+SUPPORT_CHANNEL_ID = 1331983087898460160  # Replace with your actual channel ID
 
 # Global variable to store last answers
 last_answers = []
@@ -76,21 +76,9 @@ def format_time(seconds):
         return f"{seconds // 3600} hours {(seconds % 3600) // 60} min"
 
 async def get_meme(subreddit_name="memes"):
-    # Validate subreddit_name to ensure it doesn't contain invalid characters
-    if not subreddit_name or " " in subreddit_name or "https://" in subreddit_name:
-        return None, "Invalid subreddit name."
-
     try:
         async with aiohttp.ClientSession() as session:
-            headers = {
-                "User-Agent": "MemeMaster v1.0 (by /u/Dinos_17)"  # Updated with your Reddit username
-            }
-            url = f"https://www.reddit.com/r/{subreddit_name}/hot.json?limit=50"
-            async with session.get(url, headers=headers) as response:
-                print(f"Fetching from: {url} - Status: {response.status}")  # Log the URL and status
-                if response.status != 200:
-                    return None, f"Failed to fetch memes from r/{subreddit_name}. Status code: {response.status}"
-
+            async with session.get(f"https://www.reddit.com/r/{subreddit_name}/hot.json?limit=50", headers={"User-Agent": "Auto Memer"}) as response:
                 data = await response.json()
                 posts = [post for post in data['data']['children'] if post['data']['url'].endswith(("jpg", "jpeg", "png", "gif"))]
 
@@ -131,7 +119,7 @@ async def post_meme_to_channel(channel, interval, subreddit_name):
         if meme_url:
             await channel.send(f"**{meme_title}**\n{meme_url}")
             memes_posted += 1
-
+        
         await asyncio.sleep(interval)
 
 def get_server_count():
@@ -148,7 +136,7 @@ async def on_ready():
     try:
         global last_sync_time
         current_time = datetime.now()
-
+        
         # Sync commands only if the cooldown period has passed
         if not last_sync_time or (current_time - last_sync_time).total_seconds() > SYNC_COOLDOWN:
             start_time = time.time()
@@ -159,7 +147,7 @@ async def on_ready():
             print("Skipping command sync due to cooldown")
     except Exception as e:
         print(f"Error syncing commands: {e}")
-
+    
     await bot.change_presence(status=discord.Status.online)  # Set the bot's status
 
 @bot.event
@@ -189,7 +177,7 @@ async def help_command(interaction: discord.Interaction):
     def generate_help_embed():
         server_count = len(bot.guilds)  # Count the number of servers the bot has joined
         embed = Embed(title="Help - Available Commands", description=f"- Bot is currently in {server_count} servers", color=discord.Color.blue())
-
+        
         # Meme Commands
         embed.add_field(
             name="🎭 Meme Commands",
@@ -206,7 +194,7 @@ async def help_command(interaction: discord.Interaction):
             ),
             inline=False
         )
-
+        
         # Fun Commands
         embed.add_field(
             name="🎮 Fun Commands",
@@ -217,7 +205,7 @@ async def help_command(interaction: discord.Interaction):
             ),
             inline=False
         )
-
+        
         # Info Commands
         embed.add_field(
             name="ℹ️ Information Commands",
@@ -226,7 +214,7 @@ async def help_command(interaction: discord.Interaction):
                 "</userinfo:1333204607261872195> - Show information about a user\n"
                 "</stats:1326171297440600074> - Show bot statistics\n"
                 "</command_history:1331251925491908793> - View command usage history\n"
-                "</server_counter:1336443568696463401> - Show how many servers the bot has joined"
+                "</server_counter:1326171297440600076> - Show how many servers the bot has joined"
             ),
             inline=False
         )
@@ -245,7 +233,7 @@ async def help_command(interaction: discord.Interaction):
         return embed
 
     help_embed = generate_help_embed()
-
+    
     # Create buttons
     close_button = Button(label="Close", style=discord.ButtonStyle.danger)
     invite_button = Button(
@@ -291,7 +279,7 @@ async def meme(
     global meme_command_count  # Access the global counter
     meme_command_count += 1  # Increment the counter only here
     await interaction.response.defer()  # Defer response if meme takes time to fetch
-
+    
     try:
         meme_url, meme_title = await get_meme(subreddit)  # Remove await here
         if meme_url:
@@ -301,11 +289,11 @@ async def meme(
             )
             embed.set_image(url=meme_url)
             embed.set_footer(text=f"From r/{subreddit} | Requested by {interaction.user}")
-
+            
             # Create buttons
             refresh_button = Button(label="New Meme", style=discord.ButtonStyle.primary, emoji="🔄")
             like_button = Button(label="Like", style=discord.ButtonStyle.success, emoji="👍")
-
+            
             async def refresh_callback(button_interaction: discord.Interaction):
                 global meme_command_count  # Access the global counter
                 meme_command_count += 1  # Increment the counter for the new meme
@@ -320,17 +308,17 @@ async def meme(
                     await button_interaction.response.edit_message(embed=new_embed, view=view)
                 else:
                     await button_interaction.response.send_message("Couldn't fetch a new meme!", ephemeral=True)
-
+            
             async def like_callback(button_interaction: discord.Interaction):
                 await button_interaction.response.send_message("Thanks for liking the meme! 😊", ephemeral=True)
-
+            
             refresh_button.callback = refresh_callback
             like_button.callback = like_callback
-
+            
             view = View()
             view.add_item(refresh_button)
             view.add_item(like_button)
-
+            
             await interaction.followup.send(embed=embed, view=view)
         else:
             await interaction.followup.send(f"Couldn't fetch a meme from r/{subreddit}. Try another subreddit!", ephemeral=True)
@@ -342,15 +330,15 @@ async def meme_search(interaction: discord.Interaction, keyword: str):
     try:
         # First, acknowledge the interaction
         await interaction.response.defer()
-
+        
         # Search in multiple meme subreddits
         subreddits = ["memes", "dankmemes", "funny"]
         found_memes = []
-
+        
         for subreddit_name in subreddits:
             subreddit = reddit.subreddit(subreddit_name)
             search_results = subreddit.search(keyword, limit=5)  # Use the keyword for searching
-
+            
             for post in search_results:
                 if post.url.endswith(("jpg", "jpeg", "png", "gif")):
                     found_memes.append({
@@ -359,12 +347,12 @@ async def meme_search(interaction: discord.Interaction, keyword: str):
                         "subreddit": subreddit_name,
                         "score": post.score
                     })
-
+        
         if found_memes:
             # Sort by score
             found_memes.sort(key=lambda x: x["score"], reverse=True)
             current_index = 0
-
+            
             # Create embed for first meme
             embed = discord.Embed(
                 title=found_memes[current_index]["title"],
@@ -376,7 +364,7 @@ async def meme_search(interaction: discord.Interaction, keyword: str):
                 f"From r/{found_memes[current_index]['subreddit']} | "
                 f"Score: {found_memes[current_index]['score']}"
             )
-
+            
             # Create navigation buttons
             previous_button = Button(
                 label="Previous",
@@ -390,17 +378,17 @@ async def meme_search(interaction: discord.Interaction, keyword: str):
                 emoji="➡️",
                 disabled=len(found_memes) <= 1
             )
-
+            
             async def previous_callback(button_interaction: discord.Interaction):
                 nonlocal current_index
                 current_index -= 1
                 await update_meme(button_interaction)
-
+                
             async def next_callback(button_interaction: discord.Interaction):
                 nonlocal current_index
                 current_index += 1
                 await update_meme(button_interaction)
-
+                
             async def update_meme(button_interaction: discord.Interaction):
                 # Update embed with new meme
                 new_embed = discord.Embed(
@@ -413,23 +401,23 @@ async def meme_search(interaction: discord.Interaction, keyword: str):
                     f"From r/{found_memes[current_index]['subreddit']} | "
                     f"Score: {found_memes[current_index]['score']}"
                 )
-
+                
                 # Update button states
                 previous_button.disabled = current_index == 0
                 next_button.disabled = current_index == len(found_memes) - 1
-
+                
                 await button_interaction.response.edit_message(
                     embed=new_embed,
                     view=view
                 )
-
+            
             previous_button.callback = previous_callback
             next_button.callback = next_callback
-
+            
             view = View()
             view.add_item(previous_button)
             view.add_item(next_button)
-
+            
             await interaction.followup.send(
                 f"Found {len(found_memes)} memes matching '{keyword}':",
                 embed=embed,
@@ -437,7 +425,7 @@ async def meme_search(interaction: discord.Interaction, keyword: str):
             )
         else:
             await interaction.followup.send(f"No memes found matching '{keyword}'.")
-
+            
     except Exception as e:
         # If the interaction hasn't been acknowledged yet, acknowledge it with an error message
         if not interaction.response.is_done():
@@ -465,20 +453,20 @@ async def top_memes(
             ephemeral=True
         )
         return
-
+        
     if count < 1 or count > 10:
         await interaction.response.send_message(
             "Please request between 1 and 10 memes.",
             ephemeral=True
         )
         return
-
+        
     await interaction.response.defer()
-
+    
     try:
         subreddit = reddit.subreddit("memes")
         top_posts = subreddit.top(time_filter=timeframe, limit=count)
-
+        
         embeds = []
         for post in top_posts:
             if post.url.endswith(("jpg", "jpeg", "png", "gif")):
@@ -491,7 +479,7 @@ async def top_memes(
                 embed.add_field(name="Comments", value=f"💬 {post.num_comments:,}", inline=True)
                 embed.set_footer(text=f"Top meme from the last {timeframe}")
                 embeds.append(embed)
-
+        
         if embeds:
             await interaction.followup.send(
                 f"Top {len(embeds)} memes from the last {timeframe}:",
@@ -499,7 +487,7 @@ async def top_memes(
             )
         else:
             await interaction.followup.send("Couldn't find any suitable memes.", ephemeral=True)
-
+            
     except Exception as e:
         await interaction.followup.send(f"An error occurred: {str(e)}", ephemeral=True)
 
@@ -573,7 +561,7 @@ async def memes_by_number(interaction: discord.Interaction, count: int):
 @bot.tree.command(name="invite", description="Get the invite link to add the bot to your server.")
 async def invite(interaction: discord.Interaction):
     bot_invite_link = f"https://discord.com/oauth2/authorize?client_id={bot.user.id}&permissions=8&scope=bot%20applications.commands"
-
+    
     # Create embed
     embed = discord.Embed(
         title="🤖 Invite Me to Your Server!",
@@ -616,22 +604,16 @@ async def setchannel(interaction: discord.Interaction, channel: discord.TextChan
         if not isinstance(channel, discord.TextChannel):
             await interaction.response.send_message("Invalid channel specified. Please mention a valid text channel.", ephemeral=True)
             return
-
+        
         search_query = search_query.strip().lower()
         time_in_seconds = parse_time(interval)
-
-        # Log the channel and parameters
-        print(f"Setting channel: {channel.id}, Search Query: '{search_query}', Interval: {time_in_seconds} seconds")
 
         active_channels[channel.id] = {
             "channel": channel,
             "search_query": search_query,
             "interval": time_in_seconds
         }
-
-        # Start posting memes in the specified channel
         asyncio.create_task(post_meme_to_channel(channel, time_in_seconds, search_query))
-
         await interaction.response.send_message(f"Set {channel.mention} as a meme channel with search query '{search_query}' and an interval of {interval}.")
     except ValueError:
         await interaction.response.send_message("Invalid time format. Use 'min' for minutes or 'sec' for seconds.")
@@ -715,21 +697,21 @@ async def command_history(interaction: discord.Interaction):
     if not command_history_list:
         await interaction.response.send_message("No commands have been used yet.")
         return
-
+    
     embed = discord.Embed(
         title="Command History",
         description="Here are the last 30 commands used:",
         color=discord.Color.green()
     )
-
+    
     # Group commands and count their occurrences
     command_counts = {}
     for cmd in command_history_list:
         command_counts[cmd] = command_counts.get(cmd, 0) + 1
-
+    
     # Format the command history
     history_text = "\n".join(f"**{cmd}**: {count} times" for cmd, count in command_counts.items())
-
+    
     # Add the command history to the embed
     if history_text:
         embed.add_field(name="Commands Used", value=history_text, inline=False)
@@ -738,7 +720,7 @@ async def command_history(interaction: discord.Interaction):
 
     # Add a footer for additional information
     embed.set_footer(text=f"Requested by {interaction.user.name}", icon_url=interaction.user.avatar.url)
-
+    
     await interaction.response.send_message(embed=embed)
 
 @bot.tree.command(name="random_joke", description="Fetch and post a random joke. Optionally specify a channel.")
@@ -748,7 +730,7 @@ async def random_joke(
 ):
     # Check if user has permission to send messages in the specified channel
     target_channel = channel or interaction.channel
-
+    
     if not target_channel.permissions_for(interaction.user).send_messages:
         await interaction.response.send_message(
             f"You don't have permission to send messages in {target_channel.mention}",
@@ -757,7 +739,7 @@ async def random_joke(
         return
 
     setup, punchline = await get_joke()
-
+    
     if setup and punchline:
         # Create embed
         embed = discord.Embed(
@@ -770,7 +752,7 @@ async def random_joke(
 
         # Create buttons
         new_joke_button = Button(label="New Joke", style=discord.ButtonStyle.primary, emoji="🎲")
-
+        
         async def new_joke_callback(button_interaction: discord.Interaction):
             new_setup, new_punchline = await get_joke()
             if new_setup and new_punchline:
@@ -815,18 +797,18 @@ async def ping(interaction: discord.Interaction):
 @bot.tree.command(name="serverinfo", description="Display information about the server.")
 async def serverinfo(interaction: discord.Interaction):
     guild = interaction.guild
-
+    
     embed = discord.Embed(
         title=f"📊 {guild.name} Server Information",
         color=discord.Color.blue()
     )
-
+    
     # Check if the owner is available
     owner_mention = guild.owner.mention if guild.owner else "Unknown"
     embed.add_field(name="Owner", value=owner_mention, inline=True)
     embed.add_field(name="Created On", value=guild.created_at.strftime("%B %d, %Y"), inline=True)
     embed.add_field(name="Server ID", value=guild.id, inline=True)
-
+    
     # Member stats
     total_members = len(guild.members)
     humans = len([m for m in guild.members if not m.bot])
@@ -834,7 +816,7 @@ async def serverinfo(interaction: discord.Interaction):
     embed.add_field(name="Total Members", value=total_members, inline=True)
     embed.add_field(name="Humans", value=humans, inline=True)
     embed.add_field(name="Bots", value=bots, inline=True)
-
+    
     # Channel stats
     text_channels = len(guild.text_channels)
     voice_channels = len(guild.voice_channels)
@@ -842,45 +824,37 @@ async def serverinfo(interaction: discord.Interaction):
     embed.add_field(name="Text Channels", value=text_channels, inline=True)
     embed.add_field(name="Voice Channels", value=voice_channels, inline=True)
     embed.add_field(name="Categories", value=categories, inline=True)
-
+    
     if guild.icon:
         embed.set_thumbnail(url=guild.icon.url)
-
+    
     await interaction.response.send_message(embed=embed)
 
 @bot.tree.command(name="userinfo", description="Display information about a user.")
 async def userinfo(interaction: discord.Interaction, user: discord.Member = None):
     user = user or interaction.user
-
+    
     embed = discord.Embed(
         title=f"👤 User Information for {user.name}",
         color=user.color if user.color != discord.Color.default() else discord.Color.blue()
     )
-
+    
     embed.add_field(name="User ID", value=user.id, inline=True)
     embed.add_field(name="Nickname", value=user.nick or "None", inline=True)
     embed.add_field(name="Bot", value="Yes" if user.bot else "No", inline=True)
-
+    
     embed.add_field(name="Account Created", value=user.created_at.strftime("%B %d, %Y"), inline=True)
     embed.add_field(name="Joined Server", value=user.joined_at.strftime("%B %d, %Y"), inline=True)
-
+    
     roles = [role.mention for role in user.roles if role.name != "@everyone"]
     embed.add_field(name=f"Roles [{len(roles)}]", value=" ".join(roles) if roles else "None", inline=False)
-
+    
     embed.set_thumbnail(url=user.display_avatar.url)
-
+    
     await interaction.response.send_message(embed=embed)
 
 @bot.tree.command(name="report", description="Report an issue with the bot.")
 async def report(interaction: discord.Interaction, issue: str):
-    # Check if the command is used in a guild context
-    if interaction.guild is None:
-        await interaction.response.send_message(
-            "This command cannot be used in direct messages. Please use it in a server.",
-            ephemeral=True
-        )
-        return
-
     # Create embed for the report
     embed = discord.Embed(
         title="🐛 Bug Report",
@@ -893,7 +867,7 @@ async def report(interaction: discord.Interaction, issue: str):
 
     # Get the support channel
     support_channel = bot.get_channel(SUPPORT_CHANNEL_ID)
-
+    
     if support_channel:
         # Send the report to the support channel
         report_message = await support_channel.send(embed=embed)
@@ -1011,17 +985,17 @@ async def eight_ball(interaction: discord.Interaction, question: str):
 @bot.tree.command(name="gif", description="Search and display a random GIF based on a specified keyword.")
 async def gif(interaction: discord.Interaction, keyword: str):
     await interaction.response.defer()  # Acknowledge the interaction
-
+    
     async with aiohttp.ClientSession() as session:
         try:
             # Removed print statement for fetching GIFs
             async with session.get(f"https://api.giphy.com/v1/gifs/search?api_key=upEsZXwiOekDKkRmMwCRpKUHSLz3OXzu&q={keyword}&limit=5&offset=0&rating=g&lang=en") as response:
                 response.raise_for_status()  # Raise an error for bad responses
                 data = await response.json()
-
+                
                 if data['data']:
                     available_gifs = [gif for gif in data['data'] if gif['images']['original']['url'] not in sent_gifs]
-
+                    
                     if available_gifs:
                         selected_gif = random.choice(available_gifs)
                         gif_url = selected_gif['images']['original']['url']  # Get the selected GIF URL
