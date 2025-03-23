@@ -1,0 +1,16 @@
+# Ignore .env file which contains sensitive information
+.env
+
+# Python cache files
+__pycache__/
+*.py[cod]
+
+# IDE files
+.vscode/
+.idea/
+
+# Logs
+*.log
+
+# Byte-compiled files
+*.pyc
