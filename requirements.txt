@@ -1,6 +1,6 @@
 discord.py==2.4.0
 requests==2.28.1
 praw==7.5.0
-asyncpraw==10.0.0
+asyncpraw==7.8.1
 aiohttp==3.8.1
 python-dotenv==0.20.0
